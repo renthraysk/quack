@@ -1,5 +1,10 @@
 # QUACK
 
+Work in progress.
+
+## TODO list
+- [ ] Dymanic table support.
+
 This package produces and consumes QPACK encoded headers.
 
 It uses canonical (Content-Type) header name style of HTTP/1 & go/http. 
