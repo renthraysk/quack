@@ -45,13 +45,13 @@ func (dt *DT) baseLineIndex(index uint64) (string, string, error) {
 
 type decoder struct {
 	mutex  sync.Mutex
-	resume []byte
 	dt     *DT
+	resume []byte
 	decodeState
 }
 
 func NewDecoder() *decoder {
-	return &decoder{dt: new(DT)}
+	return &decoder{}
 }
 
 func (d *decoder) Reset() error {
@@ -145,7 +145,7 @@ func (d *decoder) decode(p []byte, accept func(string, string)) ([]byte, error) 
 			p = q
 			accept(name, value)
 
-		case 0b0010:
+		case 0b0010, 0b0011:
 			// 001N_HXXX Literal Field Line with Literal Name
 			// https://www.rfc-editor.org/rfc/rfc9204.html#name-literal-field-line-with-lit
 			name, q, err := readLiteralName(p, buf)
