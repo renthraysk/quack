@@ -2,6 +2,7 @@ package quack
 
 import (
 	"encoding/base64"
+	"math"
 	"net/http"
 	"strconv"
 	"testing"
@@ -74,25 +75,56 @@ func FuzzEncodeDecode(f *testing.F) {
 	})
 }
 
-func TestTimeAppend(t *testing.T) {
-	now := time.Now()
+func TestIntAppend(t *testing.T) {
+	for _, v := range []int64{0, 1000, math.MaxInt64} {
 
-	e := NewEncoder()
-	r := e.NewRequest(nil, "GET", "https", "localhost", "/")
-	r = e.AppendDate(r, now, true)
+		e := NewEncoder()
+		r := e.NewRequest(nil, "GET", "https", "localhost", "/")
+		r = e.AppendContentLength(r, v, true)
 
-	d := NewDecoder()
-	got := ""
-	err := d.Decode(r, func(name, value string) {
-		if name == "Date" {
-			got = value
+		d := NewDecoder()
+		got := ""
+		err := d.Decode(r, func(name, value string) {
+			if name == "Content-Length" {
+				got = value
+			}
+		})
+		if err != nil {
+			t.Errorf("decode failed: %v", err)
 		}
-	})
-	if err != nil {
-		t.Errorf("decode failed: %v", err)
+		if expected := strconv.FormatInt(v, 10); got != expected {
+			t.Errorf("expected: %v got %v", expected, got)
+		}
 	}
-	if expected := now.Format(time.RFC3339); got != expected {
-		t.Errorf("expected: %v got %v", expected, got)
+}
+
+func TestTimeAppend(t *testing.T) {
+	for _, expected := range []string{
+		"2006-01-02T15:04:05Z",
+		"2006-01-02T15:04:05+07:00",
+		"2006-01-02T15:04:05-07:00",
+	} {
+		tt, err := time.Parse(time.RFC3339, expected)
+		if err != nil {
+			t.Fatalf("time.Parse failed: %v", err)
+		}
+		e := NewEncoder()
+		r := e.NewRequest(nil, "GET", "https", "localhost", "/")
+		r = e.AppendDate(r, tt, true)
+
+		d := NewDecoder()
+		got := ""
+		err = d.Decode(r, func(name, value string) {
+			if name == "Date" {
+				got = value
+			}
+		})
+		if err != nil {
+			t.Errorf("decode failed: %v", err)
+		}
+		if got != expected {
+			t.Errorf("expected: %v got %v", expected, got)
+		}
 	}
 }
 

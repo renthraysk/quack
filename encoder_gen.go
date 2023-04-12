@@ -245,11 +245,17 @@ func (e *Encoder) appendContentLengthString(p []byte, contentLength string, neve
 	return appendStringLiteral(p, contentLength)
 }
 
-func (e *Encoder) appendContentLength(p []byte, contentLength int64, neverIndex byte) []byte {
+func (e *Encoder) AppendContentLength(p []byte, contentLength int64, neverIndex bool) []byte {
 	if contentLength == 0 {
 		return append(p, 0xC4)
 	}
-	p = append(p, neverIndex|0x54)
+	const NeverIndex = 0b0010_0000
+
+	var b byte = 0x54
+	if neverIndex {
+		b = NeverIndex | 0x54
+	}
+	p = append(p, b)
 	return appendInt(p, contentLength)
 }
 
@@ -272,11 +278,11 @@ func (e *Encoder) appendDateString(p []byte, s string, neverIndex byte) []byte {
 func (e *Encoder) AppendDate(p []byte, t time.Time, neverIndex bool) []byte {
 	const NeverIndex = 0b0010_0000
 
-	var prefix byte = 0x56
+	var b byte = 0x56
 	if neverIndex {
-		prefix = NeverIndex | 0x56
+		b = NeverIndex | 0x56
 	}
-	p = append(p, prefix)
+	p = append(p, b)
 	return appendTime(p, t)
 }
 
