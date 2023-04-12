@@ -269,8 +269,14 @@ func (e *Encoder) appendDateString(p []byte, s string, neverIndex byte) []byte {
 	return appendStringLiteral(p, s)
 }
 
-func (e *Encoder) AppendDate(p []byte, t time.Time, neverIndex byte) []byte {
-	p = append(p, neverIndex|0x56)
+func (e *Encoder) AppendDate(p []byte, t time.Time, neverIndex bool) []byte {
+	const NeverIndex = 0b0010_0000
+
+	var prefix byte = 0x56
+	if neverIndex {
+		prefix = NeverIndex | 0x56
+	}
+	p = append(p, prefix)
 	return appendTime(p, t)
 }
 

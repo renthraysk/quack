@@ -74,6 +74,28 @@ func FuzzEncodeDecode(f *testing.F) {
 	})
 }
 
+func TestTimeAppend(t *testing.T) {
+	now := time.Now()
+
+	e := NewEncoder()
+	r := e.NewRequest(nil, "GET", "https", "localhost", "/")
+	r = e.AppendDate(r, now, true)
+
+	d := NewDecoder()
+	got := ""
+	err := d.Decode(r, func(name, value string) {
+		if name == "Date" {
+			got = value
+		}
+	})
+	if err != nil {
+		t.Errorf("decode failed: %v", err)
+	}
+	if expected := now.Format(time.RFC3339); got != expected {
+		t.Errorf("expected: %v got %v", expected, got)
+	}
+}
+
 func BenchmarkTimeAppend(b *testing.B) {
 	now := time.Now()
 	var buf [32]byte

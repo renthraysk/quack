@@ -109,42 +109,6 @@ func AppendInt(p []byte, i int64) []byte {
 	return appendFinal(p, x, n)
 }
 
-// EncodeRFC3339TimeLength returns the number of bytes to required to store the
-// huffman encoded RFC3339 formatting of t.
-func EncodeRFC3339TimeLength(t time.Time) uint64 {
-	year, month, day := t.Date()
-	y := year / 100
-	if y >= 100 {
-		panic("year overflows 4 decimal digits")
-	}
-	n := uint64(2*codeLengths['-'] + codeLengths['T'] + 2*codeLengths[':'])
-	n += uint64(codes00To99[y].length)
-	n += uint64(codes00To99[year-(y*100)].length)
-	n += uint64(codes00To99[month].length)
-	n += uint64(codes00To99[day].length)
-	hour, minute, second := t.Clock()
-	n += uint64(codes00To99[hour].length)
-	n += uint64(codes00To99[minute].length)
-	n += uint64(codes00To99[second].length)
-	_, offsetSec := t.Zone()
-	if offsetSec == 0 {
-		n += uint64(codeLengths['Z'])
-		return (n + 7) / 8
-	}
-	s := uint64(codeLengths['+'])
-	offsetMin := offsetSec / 60
-	if offsetMin < 0 {
-		offsetMin = -offsetMin
-		s = uint64(codeLengths['-'])
-	}
-	n += s
-	offsetHour := offsetMin / 60
-	n += uint64(codes00To99[offsetHour].length)
-	n += uint64(codeLengths[':'])
-	n += uint64(codes00To99[offsetMin-(60*offsetHour)].length)
-	return (n + 7) / 8
-}
-
 // AppendRFC3339Time appends the huffman encoding of time.Time t in RFC3339
 // format to p returning the result.
 func AppendRFC3339Time(p []byte, t time.Time) []byte {

@@ -179,9 +179,6 @@ func TestEncodeRFC3339Time(t *testing.T) {
 				t.Fatalf("failed to parse %q", c.time)
 			}
 			expected := dehex(t, c.encoded)
-			if n := EncodeRFC3339TimeLength(tm); n != c.length {
-				t.Errorf("expected length %d, got %d", c.length, n)
-			}
 			if got := AppendRFC3339Time(nil, tm); !bytes.Equal(got, expected) {
 				t.Errorf("expected %x, got %x", c.encoded, got)
 			}
