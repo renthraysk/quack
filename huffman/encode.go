@@ -50,32 +50,6 @@ func AppendStringLower(p []byte, s string) []byte {
 	return appendFinal(p, x, n)
 }
 
-func EncodeIntLength(i int64) uint64 {
-	if i == 0 {
-		return uint64((codeLengths['0'] + 7) / 8)
-	}
-	var n uint64
-
-	u := uint64(i)
-	if i < 0 {
-		n = uint64(codeLengths['-'])
-		u = uint64(-i)
-	}
-	for u >= 100 {
-		w := u / 100
-		n += uint64(codes00To99[u-100*w].length)
-		u = w
-	}
-	// u < 100
-	switch {
-	case u >= 10:
-		n += uint64(codes00To99[u].length)
-	case u > 0:
-		n += uint64(codeLengths[u+'0'])
-	}
-	return (n + 7) / 8
-}
-
 // AppendInt
 func AppendInt(p []byte, i int64) []byte {
 	if i == 0 {
