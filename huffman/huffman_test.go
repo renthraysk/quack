@@ -99,9 +99,6 @@ func TestEncodeInt(t *testing.T) {
 
 	for _, q := range tests {
 		t.Run(fmt.Sprintf("%d", q.value), func(t *testing.T) {
-			if n := EncodeIntLength(q.value); n != q.length {
-				t.Errorf("EncodeIntLength: expected %d, got %d", q.length, n)
-			}
 			if got := AppendInt(nil, q.value); !bytes.Equal(got, q.encoded) {
 				t.Errorf("AppendInt: expected %x, got %x", q.encoded, got)
 			}

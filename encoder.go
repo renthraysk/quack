@@ -111,6 +111,8 @@ func appendStringLiteral(p []byte, s string) []byte {
 
 // appendInt appends the QPACK string literal representation of int64 i.
 func appendInt(p []byte, i int64) []byte {
+	const HuffmanEncoded byte = 0b1000_0000
+
 	if -9 <= i && i <= 99 {
 		// No savings from huffman encoding 2 characters.
 		if i < 0 {
@@ -122,9 +124,12 @@ func appendInt(p []byte, i int64) []byte {
 		j := i / 10
 		return append(p, 2, byte(j)+'0', byte(i-10*j)+'0')
 	}
-	n := huffman.EncodeIntLength(i)
-	p = appendStringLiteralLength(p, n, true)
-	return huffman.AppendInt(p, i)
+
+	j := len(p)
+	p = append(p, 0)
+	p = huffman.AppendInt(p, i)
+	p[j] = HuffmanEncoded | uint8(len(p)-j-1)
+	return p
 }
 
 // appendTime appends the QPACK string literal encoded RFC3339 representation
