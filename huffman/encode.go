@@ -123,6 +123,8 @@ func AppendRFC3339Time(p []byte, t time.Time) []byte {
 	return appendFinal(p, x, n)
 }
 
+// AppendRFC1123Time appends the huffman encoding of time.Time t in RFC1123
+// format to p returning the result.
 func AppendRFC1123Time(p []byte, t time.Time) []byte {
 	const days = "SunMonTueWedThuFriSat"
 	const months = "JanFebMarAprMayJunJulAugSepOctNovDec"
