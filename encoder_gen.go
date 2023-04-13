@@ -119,6 +119,26 @@ func (e *Encoder) AppendCanonicalHeaderField(p []byte, name, value string, never
 	return e.appendHeaderField(p, name, value, neverIndex)
 }
 
+func (e *Encoder) AppendTimeHeaderField(p []byte, name string, t time.Time, neverIndex bool) []byte {
+	const NeverIndex = 0b0010_0000 // 01N1_XXXX: Literal Field Line with Name Reference in static table
+
+	var prefix byte
+	if neverIndex {
+		prefix = NeverIndex
+	}
+
+	switch name {
+	case "Date":
+		return e.appendDate(p, t, prefix)
+	case "If-Modified-Since":
+		return e.appendIfModifiedSince(p, t, prefix)
+	case "Last-Modified":
+		return e.appendLastModified(p, t, prefix)
+	}
+	p = appendLiteralName(p, name, neverIndex)
+	return appendTime(p, t)
+}
+
 // The pseudo headers
 
 // appendAuthority appends an :authority pseudo header field to p
@@ -275,14 +295,8 @@ func (e *Encoder) appendDateString(p []byte, s string, neverIndex byte) []byte {
 	return appendStringLiteral(p, s)
 }
 
-func (e *Encoder) AppendDate(p []byte, t time.Time, neverIndex bool) []byte {
-	const NeverIndex = 0b0010_0000
-
-	var b byte = 0x56
-	if neverIndex {
-		b = NeverIndex | 0x56
-	}
-	p = append(p, b)
+func (e *Encoder) appendDate(p []byte, t time.Time, neverIndex byte) []byte {
+	p = append(p, neverIndex|0x56)
 	return appendTime(p, t)
 }
 

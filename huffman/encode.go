@@ -123,6 +123,47 @@ func AppendRFC3339Time(p []byte, t time.Time) []byte {
 	return appendFinal(p, x, n)
 }
 
+func AppendRFC1123Time(p []byte, t time.Time) []byte {
+	const days = "SunMonTueWedThuFriSat"
+	const months = "JanFebMarAprMayJunJulAugSepOctNovDec"
+
+	u := t.UTC()
+	year, month, day := u.Date()
+	dayName := days[u.Weekday()*3:]
+	monthName := months[3*(month-1):]
+	_ = dayName[2]
+	x, n := uint64(codes[dayName[0]]), uint(codeLengths[dayName[0]])
+	p, x, n = appendByte(p, x, n, dayName[1])
+	p, x, n = appendByte(p, x, n, dayName[2])
+	p, x, n = appendByte(p, x, n, ',')
+	p, x, n = appendByte(p, x, n, ' ')
+	p, x, n = append00To99(p, x, n, day)
+	p, x, n = appendByte(p, x, n, ' ')
+	_ = monthName[2]
+	p, x, n = appendByte(p, x, n, monthName[0])
+	p, x, n = appendByte(p, x, n, monthName[1])
+	p, x, n = appendByte(p, x, n, monthName[2])
+	p, x, n = appendByte(p, x, n, ' ')
+	y := year / 100
+	if y >= 100 {
+		panic("year overflows 4 digits")
+	}
+	p, x, n = append00To99(p, x, n, y)
+	p, x, n = append00To99(p, x, n, year-(y*100))
+	p, x, n = appendByte(p, x, n, ' ')
+	hour, minute, second := u.Clock()
+	p, x, n = append00To99(p, x, n, hour)
+	p, x, n = appendByte(p, x, n, ':')
+	p, x, n = append00To99(p, x, n, minute)
+	p, x, n = appendByte(p, x, n, ':')
+	p, x, n = append00To99(p, x, n, second)
+	p, x, n = appendByte(p, x, n, ' ')
+	p, x, n = appendByte(p, x, n, 'G')
+	p, x, n = appendByte(p, x, n, 'M')
+	p, x, n = appendByte(p, x, n, 'T')
+	return appendFinal(p, x, n)
+}
+
 // appendByte appends the huffman code for byte c into the tuple (p, x, n)
 // Ensures returned x has last than 32 valid bits, and n is less than 32.
 // Assumes x has less than 32 valid bits, and n to be less than 32.

@@ -100,30 +100,36 @@ func TestIntAppend(t *testing.T) {
 
 func TestTimeAppend(t *testing.T) {
 	for _, expected := range []string{
-		"2006-01-02T15:04:05Z",
-		"2006-01-02T15:04:05+07:00",
-		"2006-01-02T15:04:05-07:00",
+		"Thu, 02 Feb 2006 15:04:05 GMT",
 	} {
-		tt, err := time.Parse(time.RFC3339, expected)
+		tt, err := time.Parse(time.RFC1123, expected)
 		if err != nil {
 			t.Fatalf("time.Parse failed: %v", err)
 		}
 		e := NewEncoder()
 		r := e.NewRequest(nil, "GET", "https", "localhost", "/")
-		r = e.AppendDate(r, tt, true)
+		r = e.AppendTimeHeaderField(r, "Date", tt, true)
+		r = e.AppendTimeHeaderField(r, "Last-Modified", tt, true)
 
 		d := NewDecoder()
-		got := ""
+		gotD := ""
+		gotLM := ""
 		err = d.Decode(r, func(name, value string) {
 			if name == "Date" {
-				got = value
+				gotD = value
+			}
+			if name == "Last-Modified" {
+				gotLM = value
 			}
 		})
 		if err != nil {
 			t.Errorf("decode failed: %v", err)
 		}
-		if got != expected {
-			t.Errorf("expected: %v got %v", expected, got)
+		if gotD != expected {
+			t.Errorf("Date expected: %v got %v", expected, gotD)
+		}
+		if gotLM != expected {
+			t.Errorf("Last-Modified expected: %v got %v", expected, gotLM)
 		}
 	}
 }
@@ -144,7 +150,7 @@ func BenchmarkTimeStdlibFormat(b *testing.B) {
 
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
-		_ = appendStringLiteral(buf[:0], now.Format(time.RFC3339))
+		_ = appendStringLiteral(buf[:0], now.UTC().Format(time.RFC1123))
 	}
 }
 

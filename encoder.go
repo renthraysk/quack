@@ -132,15 +132,15 @@ func appendInt(p []byte, i int64) []byte {
 	return p
 }
 
-// appendTime appends the QPACK string literal encoded RFC3339 representation
+// appendTime appends the QPACK string literal encoded RFC1123 representation
 // of t to p.
 func appendTime(p []byte, t time.Time) []byte {
-	// RFC3339 time length is less 0x7F so only need a single byte for length
+	// RFC1123 time length is less 0x7F so only need a single byte for length
 	const HuffmanEncoded byte = 0b1000_0000
 
 	i := len(p)
 	p = append(p, 0)
-	p = huffman.AppendRFC3339Time(p, t)
+	p = huffman.AppendRFC1123Time(p, t)
 	p[i] = HuffmanEncoded | uint8(len(p)-i-1)
 	return p
 }

@@ -183,6 +183,34 @@ func TestEncodeRFC3339Time(t *testing.T) {
 	}
 }
 
+func TestEncodeRFC1123Time(t *testing.T) {
+
+	times := []struct {
+		time    string
+		encoded string
+	}{
+		{"Mon, 02 Feb 2006 15:04:05 GMT", "df3dbf4a004a612c6a08007140b7700d5c036a62d1bf"},
+	}
+	for _, c := range times {
+		t.Run(c.time, func(t *testing.T) {
+			tm, err := time.Parse(time.RFC1123, c.time)
+			if err != nil {
+				t.Fatalf("failed to parse %q", c.time)
+			}
+			expected := dehex(t, c.encoded)
+			got := AppendRFC1123Time(nil, tm)
+			if !bytes.Equal(got, expected) {
+				t.Errorf("expected %x, got %x", c.encoded, got)
+			}
+			if got, err := Decode(nil, got); err != nil {
+				t.Errorf("decoded error: %v", err)
+			} else if !bytes.Equal(got, expected) {
+				t.Errorf("decode expected %v, got %v", c.time, got)
+			}
+		})
+	}
+}
+
 func FuzzEncodeDecode(f *testing.F) {
 	f.Add("")
 	f.Add("z")
