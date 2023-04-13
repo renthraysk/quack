@@ -189,7 +189,7 @@ func TestEncodeRFC1123Time(t *testing.T) {
 		time    string
 		encoded string
 	}{
-		{"Mon, 02 Feb 2006 15:04:05 GMT", "df3dbf4a004a612c6a08007140b7700d5c036a62d1bf"},
+		{"Thu, 02 Feb 2006 15:04:05 GMT", "df3dbf4a004a612c6a08007140b7700d5c036a62d1bf"},
 	}
 	for _, c := range times {
 		t.Run(c.time, func(t *testing.T) {
@@ -204,7 +204,7 @@ func TestEncodeRFC1123Time(t *testing.T) {
 			}
 			if got, err := Decode(nil, got); err != nil {
 				t.Errorf("decoded error: %v", err)
-			} else if !bytes.Equal(got, expected) {
+			} else if string(got) != c.time {
 				t.Errorf("decode expected %v, got %v", c.time, got)
 			}
 		})
