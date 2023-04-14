@@ -2,7 +2,6 @@ package quack
 
 import (
 	"errors"
-	"sync"
 
 	"github.com/renthraysk/quack/ascii"
 	"github.com/renthraysk/quack/huffman"
@@ -35,8 +34,7 @@ func (dt *DT) baseLineIndex(index uint64) (string, string, error) {
 }
 
 type decoder struct {
-	mutex sync.Mutex
-	dt    DT
+	dt DT
 }
 
 func NewDecoder() *decoder {
@@ -47,13 +45,11 @@ func (d *decoder) Reset() error {
 	return nil
 }
 
-func (d *decoder) Decode(p []byte, f func(string, string)) error {
+func (d *decoder) Decode(p []byte, accept func(string, string)) error {
 	if len(p) == 0 {
 		return nil
 	}
-	d.mutex.Lock()
-	defer d.mutex.Unlock()
-	return d.decode(p, f)
+	return d.decode(p, accept)
 }
 
 // decode decodes the header fields in p.
