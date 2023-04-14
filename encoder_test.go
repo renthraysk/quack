@@ -144,16 +144,6 @@ func BenchmarkTimeAppend(b *testing.B) {
 	}
 }
 
-func BenchmarkTimeStdlibFormat(b *testing.B) {
-	now := time.Now()
-	var buf [32]byte
-
-	b.ReportAllocs()
-	for i := 0; i < b.N; i++ {
-		_ = appendStringLiteral(buf[:0], now.UTC().Format(time.RFC1123))
-	}
-}
-
 func BenchmarkAppendInt(b *testing.B) {
 	var buf [32]byte
 
