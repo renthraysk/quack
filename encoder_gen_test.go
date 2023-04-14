@@ -94,7 +94,7 @@ func testHeaderField(t *testing.T, name, value string, neverIndex bool) {
 	}
 
 	d := &decoder{}
-	_, err := d.decode(b, func(k, v string) {
+	err := d.decode(b, func(k, v string) {
 		if name != k {
 			t.Errorf("expected name %q, got %q", name, k)
 		}

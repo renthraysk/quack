@@ -52,6 +52,7 @@ func dehex(tb testing.TB, s string) []byte {
 	}
 	return b
 }
+
 func TestDecodeRequest(t *testing.T) {
 	d := NewDecoder()
 
@@ -66,44 +67,6 @@ func TestDecodeRequest(t *testing.T) {
 	if !headersEqual(requestQuack, got) {
 		t.Errorf("expected %v, got %v", requestQuack, got)
 	}
-}
-
-func min(x, y uint) uint {
-	if x <= y {
-		return x
-	}
-	return y
-}
-
-func FuzzDecodeRequestFragmented(f *testing.F) {
-
-	req := dehex(f, requestBin)
-
-	f.Add(uint(0), uint(0))
-	f.Fuzz(func(t *testing.T, a, b uint) {
-
-		// ensure all of req is sent through
-		d := NewDecoder()
-		got := make([]headerField, 0, 8)
-		f := func(name, value string) {
-			got = append(got, headerField{name, value})
-		}
-
-		r := req
-		for _, n := range []uint{a, b, uint(len(req))} {
-			nn := min(n, uint(len(r)))
-			if err := d.Decode(r[:nn], f); err != nil {
-				t.Errorf("decode error: %v", err)
-			}
-			r = r[nn:]
-			if len(r) == 0 {
-				break
-			}
-		}
-		if !headersEqual(requestQuack, got) {
-			t.Errorf("expected %v, got %v", requestQuack, got)
-		}
-	})
 }
 
 func BenchmarkDecoder(b *testing.B) {

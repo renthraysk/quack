@@ -16,15 +16,6 @@ var (
 	errValueInvalid          = errors.New("invalid value")
 )
 
-type decodeState uint8
-
-const (
-	start decodeState = iota
-	hasInsertCount
-	hasDeltaCount
-	decodingHeaders
-)
-
 type DT struct{}
 
 func (dt *DT) nameIndex(index uint64) (string, error) {
@@ -44,10 +35,8 @@ func (dt *DT) baseLineIndex(index uint64) (string, string, error) {
 }
 
 type decoder struct {
-	mutex  sync.Mutex
-	dt     *DT
-	resume []byte
-	decodeState
+	mutex sync.Mutex
+	dt    DT
 }
 
 func NewDecoder() *decoder {
@@ -55,11 +44,6 @@ func NewDecoder() *decoder {
 }
 
 func (d *decoder) Reset() error {
-	if len(d.resume) > 0 {
-		return errors.New("buffered partial header discarded")
-	}
-	d.resume = nil
-	d.decodeState = start
 	return nil
 }
 
@@ -69,45 +53,22 @@ func (d *decoder) Decode(p []byte, f func(string, string)) error {
 	}
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
-
-	if len(d.resume) > 0 {
-		p = append(d.resume, p...)
-		d.resume = nil
-	}
-	if q, err := d.decode(p, f); err != nil {
-		if err != errUnexpectedEnd {
-			return err
-		}
-		d.resume = append(d.resume[:0], q...)
-	}
-	return nil
+	return d.decode(p, f)
 }
 
 // decode decodes the header fields in p.
 // note the fuction is well behaved in that if an error occurs then it will
 // return the original passed in p to allow for resuming.
-func (d *decoder) decode(p []byte, accept func(string, string)) ([]byte, error) {
-	switch d.decodeState {
-	case start:
-		_, q, err := readVarint(p, 0xFF)
-		if err != nil {
-			return p, err
-		}
-		d.decodeState = hasInsertCount
-		p = q
-		fallthrough
-	case hasInsertCount:
-		_, q, err := readVarint(p, 0x7F)
-		if err != nil {
-			return p, err
-		}
-		p = q
-		d.decodeState = decodingHeaders
-		if len(p) == 0 {
-			return p, errUnexpectedEnd
-		}
+func (d *decoder) decode(p []byte, accept func(string, string)) error {
+
+	_, p, err := readVarint(p, 0xFF)
+	if err != nil {
+		return err
 	}
-	// d.decodeState == decodingHeaders
+	_, p, err = readVarint(p, 0x7F)
+	if err != nil {
+		return err
+	}
 
 	buf := make([]byte, 0, 256) // Huffman decode scratch buffer
 
@@ -116,17 +77,22 @@ func (d *decoder) decode(p []byte, accept func(string, string)) ([]byte, error) 
 		case 0b0000:
 			//  0000_NXXX Literal Field Line with Post-Base Name Reference
 			// 	https://www.rfc-editor.org/rfc/rfc9204.html#name-literal-field-line-with-pos
+			const NeverIndex = 0b0000_1000
+
 			index, q, err := readVarint(p, 0b0000_0111)
 			if err != nil {
-				return p, err
+				return err
 			}
 			value, q, err := readStringLiteral(q, buf)
 			if err != nil {
-				return p, err
+				return err
 			}
 			name, err := d.dt.baseNameIndex(index)
 			if err != nil {
-				return p, err
+				return err
+			}
+			if p[0]&NeverIndex != NeverIndex {
+				// Index
 			}
 			p = q
 			accept(name, value)
@@ -136,11 +102,11 @@ func (d *decoder) decode(p []byte, accept func(string, string)) ([]byte, error) 
 			// https://www.rfc-editor.org/rfc/rfc9204.html#name-indexed-field-line-with-pos
 			index, q, err := readVarint(p, 0b0000_1111)
 			if err != nil {
-				return p, err
+				return err
 			}
 			name, value, err := d.dt.baseLineIndex(index)
 			if err != nil {
-				return p, err
+				return err
 			}
 			p = q
 			accept(name, value)
@@ -148,31 +114,41 @@ func (d *decoder) decode(p []byte, accept func(string, string)) ([]byte, error) 
 		case 0b0010, 0b0011:
 			// 001N_HXXX Literal Field Line with Literal Name
 			// https://www.rfc-editor.org/rfc/rfc9204.html#name-literal-field-line-with-lit
+			const NeverIndex = 0b0001_0000
+
 			name, q, err := readLiteralName(p, buf)
 			if err != nil {
-				return p, err
+				return err
 			}
 			value, q, err := readStringLiteral(q, buf)
 			if err != nil {
-				return p, err
+				return err
+			}
+			if p[0]&NeverIndex != NeverIndex {
+				// Index
 			}
 			p = q
 			accept(name, value)
 
 		case 0b0100, 0b0110:
-			// 01NT_XXXX: Literal Field Line with Name Reference in dynamic table
+			// 01N0_XXXX: Literal Field Line with Name Reference in dynamic table
 			// https://www.rfc-editor.org/rfc/rfc9204.html#name-literal-field-line-with-nam
+			const NeverIndex = 0b0010_0000
+
 			index, q, err := readVarint(p, 0b0000_1111)
 			if err != nil {
-				return p, err
+				return err
 			}
 			name, err := d.dt.nameIndex(index)
 			if err != nil {
-				return p, err
+				return err
 			}
 			value, q, err := readStringLiteral(q, buf)
 			if err != nil {
-				return p, err
+				return err
+			}
+			if p[0]&NeverIndex != NeverIndex {
+				// Index
 			}
 			p = q
 			accept(name, value)
@@ -180,16 +156,21 @@ func (d *decoder) decode(p []byte, accept func(string, string)) ([]byte, error) 
 		case 0b0101, 0b0111:
 			// 01N1_XXXX: Literal Field Line with Name Reference in static table
 			// https://www.rfc-editor.org/rfc/rfc9204.html#name-literal-field-line-with-nam
+			const NeverIndex = 0b0010_0000
+
 			index, q, err := readVarint(p, 0b0000_1111)
 			if err != nil {
-				return p, err
+				return err
 			}
 			if index >= uint64(len(staticTable)) {
-				return p, errStaticIndexOutOfRange
+				return errStaticIndexOutOfRange
 			}
 			value, q, err := readStringLiteral(q, buf)
 			if err != nil {
-				return p, err
+				return err
+			}
+			if p[0]&NeverIndex != NeverIndex {
+				// Index
 			}
 			p = q
 			accept(staticTable[index].Name, value)
@@ -199,11 +180,11 @@ func (d *decoder) decode(p []byte, accept func(string, string)) ([]byte, error) 
 			// https://www.rfc-editor.org/rfc/rfc9204.html#name-indexed-field-line
 			index, q, err := readVarint(p, 0b0011_1111)
 			if err != nil {
-				return p, err
+				return err
 			}
 			name, value, err := d.dt.lineIndex(index)
 			if err != nil {
-				return p, err
+				return err
 			}
 			p = q
 			accept(name, value)
@@ -213,16 +194,16 @@ func (d *decoder) decode(p []byte, accept func(string, string)) ([]byte, error) 
 			// https://www.rfc-editor.org/rfc/rfc9204.html#name-indexed-field-line
 			index, q, err := readVarint(p, 0b0011_1111)
 			if err != nil {
-				return p, err
+				return err
 			}
 			if index >= uint64(len(staticTable)) {
-				return p, errStaticIndexOutOfRange
+				return errStaticIndexOutOfRange
 			}
 			p = q
 			accept(staticTable[index].Name, staticTable[index].Value)
 		}
 	}
-	return p, nil
+	return nil
 }
 
 // readLiteralName reads a literal name from p. Will use decodeBuf if the
@@ -246,7 +227,7 @@ func readLiteralName(p, decodeBuf []byte) (string, []byte, error) {
 		return "", p, errUnexpectedEnd
 	}
 	b := q[:n:n]
-	if p[0]&HuffmanEncoded != 0 {
+	if p[0]&HuffmanEncoded == HuffmanEncoded {
 		b, err = huffman.Decode(decodeBuf[:0], b)
 		if err != nil {
 			return "", p, err
@@ -279,7 +260,7 @@ func readStringLiteral(p, decodeBuf []byte) (string, []byte, error) {
 		return "", p, errUnexpectedEnd
 	}
 	b := q[:n:n]
-	if p[0]&HuffmanEncoded != 0 {
+	if p[0]&HuffmanEncoded == HuffmanEncoded {
 		b, err = huffman.Decode(decodeBuf[:0], b)
 		if err != nil {
 			return "", p, err
