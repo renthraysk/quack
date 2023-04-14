@@ -15,48 +15,12 @@ var (
 	errValueInvalid          = errors.New("invalid value")
 )
 
-type DT struct{}
-
-func (dt *DT) nameIndex(index uint64) (string, error) {
-	return "", errors.New("TODO unsupported")
-}
-
-func (dt *DT) baseNameIndex(index uint64) (string, error) {
-	return "", errors.New("TODO unsupported")
-}
-
-func (dt *DT) lineIndex(index uint64) (string, string, error) {
-	return "", "", errors.New("TODO unsupported")
-}
-
-func (dt *DT) baseLineIndex(index uint64) (string, string, error) {
-	return "", "", errors.New("TODO unsupported")
-}
-
-type decoder struct {
+type Decoder struct {
 	dt DT
 }
 
-func NewDecoder() *decoder {
-	return &decoder{}
-}
-
-func (d *decoder) Reset() error {
-	return nil
-}
-
-func (d *decoder) Decode(p []byte, accept func(string, string)) error {
-	if len(p) == 0 {
-		return nil
-	}
-	return d.decode(p, accept)
-}
-
-// decode decodes the header fields in p.
-// note the fuction is well behaved in that if an error occurs then it will
-// return the original passed in p to allow for resuming.
-func (d *decoder) decode(p []byte, accept func(string, string)) error {
-
+// Decode decodes the header fields in p.
+func (d *Decoder) Decode(p []byte, accept func(string, string)) error {
 	_, p, err := readVarint(p, 0xFF)
 	if err != nil {
 		return err

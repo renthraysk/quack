@@ -54,12 +54,11 @@ func dehex(tb testing.TB, s string) []byte {
 }
 
 func TestDecodeRequest(t *testing.T) {
-	d := NewDecoder()
-
 	got := make([]headerField, 0, 8)
 	f := func(name, value string) {
 		got = append(got, headerField{name, value})
 	}
+	d := new(Decoder)
 	err := d.Decode(dehex(t, requestBin), f)
 	if err != nil {
 		t.Errorf("decode error: %v", err)
@@ -76,11 +75,11 @@ func BenchmarkDecoder(b *testing.B) {
 	}
 
 	in := dehex(b, requestBin)
-	d := NewDecoder()
 	b.ReportAllocs()
 	b.ResetTimer()
+
+	d := new(Decoder)
 	for i := 0; i < b.N; i++ {
-		d.Reset()
 		headers = headers[:0]
 		err := d.Decode(in, f)
 		_ = err

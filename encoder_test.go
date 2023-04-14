@@ -53,10 +53,11 @@ func FuzzEncodeDecode(f *testing.F) {
 		}
 		value := string(valueB)
 
-		e := NewEncoder()
-		d := NewDecoder()
+		e := new(Encoder)
 		hf := make([]headerField, 0, 1)
 		encoded := e.appendHeaderField([]byte{0, 0}, name, value, false)
+
+		d := new(Decoder)
 		err := d.Decode(encoded, func(name, value string) {
 			hf = append(hf, headerField{name, value})
 		})
@@ -78,12 +79,12 @@ func FuzzEncodeDecode(f *testing.F) {
 func TestIntAppend(t *testing.T) {
 	for _, v := range []int64{0, 1000, math.MaxInt64} {
 
-		e := NewEncoder()
+		e := new(Encoder)
 		r := e.NewRequest(nil, "GET", "https", "localhost", "/")
 		r = e.AppendContentLength(r, v, true)
 
-		d := NewDecoder()
 		got := ""
+		d := new(Decoder)
 		err := d.Decode(r, func(name, value string) {
 			if name == "Content-Length" {
 				got = value
@@ -106,14 +107,14 @@ func TestTimeAppend(t *testing.T) {
 		if err != nil {
 			t.Fatalf("time.Parse failed: %v", err)
 		}
-		e := NewEncoder()
+		e := new(Encoder)
 		r := e.NewRequest(nil, "GET", "https", "localhost", "/")
 		r = e.AppendTimeHeaderField(r, "Date", tt, true)
 		r = e.AppendTimeHeaderField(r, "Last-Modified", tt, true)
 
-		d := NewDecoder()
 		gotD := ""
 		gotLM := ""
+		d := new(Decoder)
 		err = d.Decode(r, func(name, value string) {
 			if name == "Date" {
 				gotD = value
@@ -168,7 +169,7 @@ func BenchmarkEncoder(b *testing.B) {
 	b.ReportAllocs()
 	b.ResetTimer()
 
-	e := NewEncoder()
+	e := new(Encoder)
 	for i := 0; i < b.N; i++ {
 		_ = e.NewRequest(buf[:0], "GET", "https", "localhost", "/")
 	}

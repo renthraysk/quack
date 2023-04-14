@@ -65,7 +65,8 @@ func isPseudo(name string) bool { return strings.HasPrefix(name, ":") }
 
 func testHeaderField(t *testing.T, name, value string, neverIndex bool) {
 	var buf [1 << 10]byte
-	var e Encoder
+
+	e := new(Encoder)
 
 	b := buf[:2]
 
@@ -92,9 +93,8 @@ func testHeaderField(t *testing.T, name, value string, neverIndex bool) {
 	} else {
 		b = e.AppendCanonicalHeaderField(b, name, value, neverIndex)
 	}
-
-	d := &decoder{}
-	err := d.decode(b, func(k, v string) {
+	d := new(Decoder)
+	err := d.Decode(b, func(k, v string) {
 		if name != k {
 			t.Errorf("expected name %q, got %q", name, k)
 		}

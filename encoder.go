@@ -8,10 +8,7 @@ import (
 )
 
 type Encoder struct {
-}
-
-func NewEncoder() *Encoder {
-	return &Encoder{}
+	dt DT
 }
 
 // https://www.rfc-editor.org/rfc/rfc9114.html#name-request-pseudo-header-field
@@ -132,7 +129,7 @@ func appendInt(p []byte, i int64) []byte {
 	return p
 }
 
-// appendTime appends the QPACK string literal encoded RFC1123 representation
+// appeneime appends the QPACK string literal encoded RFC1123 representation
 // of t to p.
 func appendTime(p []byte, t time.Time) []byte {
 	// RFC1123 time length is less 0x7F so only need a single byte for length
