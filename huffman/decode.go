@@ -1,8 +1,8 @@
 package huffman
 
-// Decode decodes huffman encoded data in, and appends to dst return the result.
-// Will return an error if the input is incorrectly padded, or if the EOS
-// code has been encoded.
+// Decode decodes huffman encoded data in, and appends to dst and returns the
+// result. Will return an error if the input is incorrectly padded, or if the
+// EOS code has been encoded.
 func Decode(dst, in []byte) ([]byte, error) {
 	// The maximum code length is 30.
 	var x uint64
@@ -54,9 +54,9 @@ func Decode(dst, in []byte) ([]byte, error) {
 	return dst, nil
 }
 
-// codeLookup takes a left aligned 32 bit value will return the symbol
-// and bit length from left most bits of x. If it encounters the EOS code,
-// it will return a length of 0.
+// codeLookup takes a 32 bit value with the code to be decoded in the most
+// significant bits, will return the symbol and bit length.
+// If it encounters the EOS symbol, it will return a length of 0.
 func codeLookup(x uint32) (sym byte, length uint8) {
 	// inlines, just.
 	const (

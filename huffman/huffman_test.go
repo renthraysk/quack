@@ -158,31 +158,6 @@ func TestEncodeStringLower(t *testing.T) {
 	}
 }
 
-func TestEncodeRFC3339Time(t *testing.T) {
-
-	times := []struct {
-		time    string
-		length  uint64
-		encoded string
-	}{
-		{"2006-01-02T15:04:05Z", 15, "1000e2c00ac016f0b7700d5c037fbf"},
-		{"2006-01-02T15:04:05+07:00", 19, "1000e2c00ac016f0b7700d5c037fec0edc003f"},
-		{"2006-01-02T15:04:05-07:00", 18, "1000e2c00ac016f0b7700d5c036b01db8007"},
-	}
-	for _, c := range times {
-		t.Run(c.time, func(t *testing.T) {
-			tm, err := time.Parse(time.RFC3339, c.time)
-			if err != nil {
-				t.Fatalf("failed to parse %q", c.time)
-			}
-			expected := dehex(t, c.encoded)
-			if got := AppendRFC3339Time(nil, tm); !bytes.Equal(got, expected) {
-				t.Errorf("expected %x, got %x", c.encoded, got)
-			}
-		})
-	}
-}
-
 func TestEncodeRFC1123Time(t *testing.T) {
 
 	times := []struct {
@@ -257,19 +232,19 @@ func FuzzTime(f *testing.F) {
 		if expected.Year() > 9999 {
 			return
 		}
-		encoded := AppendRFC3339Time(nil, expected)
+		encoded := AppendRFC1123Time(nil, expected)
 		decoded, err := Decode(nil, encoded)
 		if err != nil {
 			t.Errorf("decode error: %v", err)
 		}
-		got, err := time.Parse(time.RFC3339, string(decoded))
+		got, err := time.Parse(time.RFC1123, string(decoded))
 		if err != nil {
 			t.Errorf("parse error: %v", err)
 		}
 		if !expected.Equal(got) {
 			t.Errorf("expected %q, got %q",
-				expected.Format(time.RFC3339),
-				got.Format(time.RFC3339))
+				expected.Format(time.RFC1123),
+				got.Format(time.RFC1123))
 		}
 	})
 }

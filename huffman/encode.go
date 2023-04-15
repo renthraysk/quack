@@ -83,69 +83,20 @@ func AppendInt(p []byte, i int64) []byte {
 	return appendFinal(p, x, n)
 }
 
-// AppendRFC3339Time appends the huffman encoding of time.Time t in RFC3339
-// format to p returning the result.
-func AppendRFC3339Time(p []byte, t time.Time) []byte {
-	year, month, day := t.Date()
-	y := year / 100
-	if y >= 100 {
-		panic("year overflows 4 digits")
-	}
-	x, n := uint64(codes00To99[y].code), uint(codes00To99[y].length)
-	p, x, n = append00To99(p, x, n, year-(y*100))
-	p, x, n = appendByte(p, x, n, '-')
-	p, x, n = append00To99(p, x, n, int(month))
-	p, x, n = appendByte(p, x, n, '-')
-	p, x, n = append00To99(p, x, n, day)
-	p, x, n = appendByte(p, x, n, 'T')
-	hour, minute, second := t.Clock()
-	p, x, n = append00To99(p, x, n, hour)
-	p, x, n = appendByte(p, x, n, ':')
-	p, x, n = append00To99(p, x, n, minute)
-	p, x, n = appendByte(p, x, n, ':')
-	p, x, n = append00To99(p, x, n, second)
-	_, offsetSec := t.Zone()
-	if offsetSec == 0 {
-		p, x, n = appendByte(p, x, n, 'Z')
-		return appendFinal(p, x, n)
-	}
-	s := byte('+')
-	offsetMin := offsetSec / 60
-	if offsetMin < 0 {
-		s = '-'
-		offsetMin = -offsetMin
-	}
-	p, x, n = appendByte(p, x, n, s)
-	offsetHour := offsetMin / 60
-	p, x, n = append00To99(p, x, n, offsetHour)
-	p, x, n = appendByte(p, x, n, ':')
-	p, x, n = append00To99(p, x, n, offsetMin-(60*offsetHour))
-	return appendFinal(p, x, n)
-}
-
 // AppendRFC1123Time appends the huffman encoding of time.Time t in RFC1123
 // format to p returning the result.
 func AppendRFC1123Time(p []byte, t time.Time) []byte {
-	const days = "SunMonTueWedThuFriSat"
-	const months = "JanFebMarAprMayJunJulAugSepOctNovDec"
-
 	u := t.UTC()
 	year, month, day := u.Date()
-	dayName := days[u.Weekday()*3:]
-	monthName := months[3*(month-1):]
-	_ = dayName[2]
-	x, n := uint64(codes[dayName[0]]), uint(codeLengths[dayName[0]])
-	p, x, n = appendByte(p, x, n, dayName[1])
-	p, x, n = appendByte(p, x, n, dayName[2])
-	p, x, n = appendByte(p, x, n, ',')
-	p, x, n = appendByte(p, x, n, ' ')
-	p, x, n = append00To99(p, x, n, day)
-	p, x, n = appendByte(p, x, n, ' ')
-	_ = monthName[2]
-	p, x, n = appendByte(p, x, n, monthName[0])
-	p, x, n = appendByte(p, x, n, monthName[1])
-	p, x, n = appendByte(p, x, n, monthName[2])
-	p, x, n = appendByte(p, x, n, ' ')
+	d := days[u.Weekday()]
+	x, n := uint64(d.code), uint(d.length) // "Day, "
+	p, x, n = append00To99(p, x, n, day)   // "Day, 01"
+
+	m := months[month-1]
+	x <<= m.length % 64
+	n += uint(m.length)
+	x |= uint64(m.code) // "Day, 01 Mon "
+
 	y := year / 100
 	if y >= 100 {
 		panic("year overflows 4 digits")
@@ -153,17 +104,54 @@ func AppendRFC1123Time(p []byte, t time.Time) []byte {
 	p, x, n = append00To99(p, x, n, y)
 	p, x, n = append00To99(p, x, n, year-(y*100))
 	p, x, n = appendByte(p, x, n, ' ')
+
 	hour, minute, second := u.Clock()
 	p, x, n = append00To99(p, x, n, hour)
 	p, x, n = appendByte(p, x, n, ':')
 	p, x, n = append00To99(p, x, n, minute)
 	p, x, n = appendByte(p, x, n, ':')
 	p, x, n = append00To99(p, x, n, second)
-	p, x, n = appendByte(p, x, n, ' ')
-	p, x, n = appendByte(p, x, n, 'G')
-	p, x, n = appendByte(p, x, n, 'M')
-	p, x, n = appendByte(p, x, n, 'T')
+	// " GMT"
+	x <<= 27
+	x |= 0x0298b46f // "Day, 01 Mon 1990 HH:MM:SS GMT"
+	n += 27
+	if n >= 32 {
+		n %= 32
+		y := uint32(x >> n)
+		p = append(p, byte(y>>24), byte(y>>16), byte(y>>8), byte(y))
+	}
 	return appendFinal(p, x, n)
+}
+
+var days = [...]struct {
+	code   uint64
+	length uint8
+}{
+	{0x1badabe94, 33}, // "Sun, "
+	{0xd07abe94, 32},  // "Mon, "
+	{0xdf697e94, 32},  // "Tue, "
+	{0xe4593e94, 32},  // "Wed, "
+	{0x1be7b7e94, 33}, // "Thu, "
+	{0xc361be94, 32},  // "Fri, "
+	{0x6e1a7e94, 31},  // "Sat, "
+}
+
+var months = [...]struct {
+	code   uint32
+	length uint8
+}{
+	{0x14ca3a94, 30}, // " Jan "
+	{0x14c258d4, 30}, // " Feb "
+	{0x14d03b14, 30}, // " Mar "
+	{0x1486bb14, 30}, // " Apr "
+	{0x29a07e94, 31}, // " May "
+	{0x2996da94, 31}, // " Jun "
+	{0x2996da14, 31}, // " Jul "
+	{0x1486d994, 30}, // " Aug "
+	{0x14dc5ad4, 30}, // " Sep "
+	{0x0a6a2254, 29}, // " Oct "
+	{0x29a4fdd4, 31}, // " Nov "
+	{0x0a5f2914, 29}, // " Dec "
 }
 
 // appendByte appends the huffman code for byte c into the tuple (p, x, n)
