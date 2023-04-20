@@ -59,11 +59,6 @@ func Decode(dst, in []byte) ([]byte, error) {
 // If it encounters the EOS symbol, it will return a length of 0.
 func codeLookup(x uint32) (sym byte, length uint8) {
 	// inlines, just.
-	const (
-		maxShortCode = 13
-		delta        = 0xfff00000
-		offset30     = 253
-	)
 	// Fast path for codes with lengths less than or equal to maxShortCode
 	if i := x >> (32 - maxShortCode); i < uint32(len(shortCodes)) {
 		b := shortCodes[i]

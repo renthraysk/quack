@@ -48,6 +48,17 @@ type codeIndex struct {
 	offset30     uint8
 }
 
+type buckets [maxCodeLength + 1][]byte
+
+// next returns the next bit length that has output symbols.
+func (b *buckets) next(length int) (int, bool) {
+	i := length + 1
+	for i < len(b) && len(b[i]) == 0 {
+		i++
+	}
+	return i, i < len(b)
+}
+
 func New(maxShortCode int) *codeIndex {
 	ci := &codeIndex{
 		shortCodes:   make([]byte, 1<<maxShortCode),
@@ -55,16 +66,16 @@ func New(maxShortCode int) *codeIndex {
 	}
 
 	// bucket syms by their code length
-	li := new([maxCodeLength + 1][]byte)
+	li := new(buckets)
 	for sym, n := range codeLengths {
 		li[n] = append(li[n], byte(sym))
 	}
 
 	{ // Short code table generation
 		i := 0
-		for j := minCodeLength; j <= maxShortCode; j++ {
-			n := 1 << (maxShortCode - j)
-			for _, b := range li[j] {
+		for length := minCodeLength; length <= maxShortCode; length++ {
+			n := 1 << (maxShortCode - length)
+			for _, b := range li[length] {
 				memset(ci.shortCodes[i:i+n], b)
 				i += n
 			}
@@ -85,13 +96,12 @@ func New(maxShortCode int) *codeIndex {
 			if len(syms) == 0 {
 				continue
 			}
-			nextLength := length + 1
-			for nextLength < len(li) && len(li[nextLength]) == 0 {
-				nextLength++
-			}
-			if nextLength >= len(li) {
+
+			nextLength, ok := li.next(length)
+			if !ok {
 				break
 			}
+
 			nextCode := codes[li[nextLength][0]] << (32 - nextLength)
 			code := codes[syms[0]] << (32 - length)
 
@@ -101,11 +111,8 @@ func New(maxShortCode int) *codeIndex {
 		ci.offset30 = byte(offset)
 	}
 	{
-		nextLength := maxShortCode + 1
-		for nextLength < len(li) && len(li[nextLength]) == 0 {
-			nextLength++
-		}
-		if nextLength >= len(li) {
+		nextLength, ok := li.next(maxShortCode)
+		if !ok {
 			panic("couldn't find initial delta")
 		}
 		ci.delta = codes[li[nextLength][0]] << (32 - nextLength)
@@ -113,8 +120,22 @@ func New(maxShortCode int) *codeIndex {
 	return ci
 }
 
+func code(s string) (uint64, uint) {
+	var x uint64
+	var n uint
+
+	for _, c := range s {
+		x <<= codeLengths[c]
+		n += uint(codeLengths[c])
+		x |= uint64(codes[c])
+	}
+	return x, n
+}
+
 func main() {
 	const maxShortCode = 13
+	const days = "Sun,Mon,Tue,Wed,Thu,Fri,Sat,"
+	const months = " Jan  Feb  Mar  Apr  May  Jun  Jul  Aug  Sep  Oct  Nov  Dec "
 
 	w := os.Stdout
 
@@ -123,44 +144,49 @@ func main() {
 	fmt.Fprintln(w, "package huffman")
 	fmt.Fprintln(w)
 
-	if false {
-		fmt.Fprintf(w, `
-// codeLookup takes a 32 bit value with the code to be decoded in the most 
-// significant bits, will return the symbol and bit length from left most bits 
-// of x. If it encounters the EOS symbol, it will return a length of 0.
-func codeLookup(x uint32) (byte, uint8) {
-	const (
-		maxShortCode = %d
-		delta        = %#08x
-		offset30     = %d
-	)
-	// fast path for codes with lengths less than or equal to maxShortCode
-	if i := x >> (32 - maxShortCode); i < uint32(len(shortCodes)) {
-		b := shortCodes[i]
-		return b, codeLengths[b]
+	{ // " GMT" preencoded
+		x, n := code(" GMT")
+		fmt.Fprintf(w, `const (
+	gmtCode   = %#08x // " GMT"
+	gmtLength = %d
+)`, x, n)
 	}
-	// slow path for longer codes
-	x -= delta
-	for _, y := range bounds {
-		if x < y.delta {
-			// longCodes is const string 256 bytes long, using uint8 for BCE
-			return longCodes[y.offset + uint8(x>>((32 - y.length) %% 32))], y.length
-		}
-		x -= y.delta
+	fmt.Fprintln(w)
+	fmt.Fprintln(w)
+	fmt.Println(`type code[T uint16 | uint32 | uint64] struct {
+	_      [0]func()
+	code   T
+	length uint8
+}`)
+	fmt.Println()
+
+	fmt.Println("var days = [...]code[uint32] {")
+	for i := 0; i < len(days); i += 4 {
+		x, n := code(days[i : i+4])
+		fmt.Printf("\t{code: %#08x, length: %d}, // %q\n", x, n, days[i:i+4])
 	}
-	// codes of bit length 30, which can include EOS
-	x >>= (32 - 30)
-	x += offset30
-	if x >= uint32(len(longCodes)) {
-		return 0, 0			// eosCode found
+	fmt.Println("}")
+	fmt.Println()
+	fmt.Println("var months = [...]code[uint32] {")
+	for i := 0; i < len(months); i += 5 {
+		x, n := code(months[i : i+5])
+		fmt.Printf("\t{code: %#08x, length: %d}, // %q\n", x, n, months[i:i+5])
 	}
-	return longCodes[x], 30
-}`, maxShortCode, ci.delta, ci.offset30)
-		fmt.Fprintln(w)
-		fmt.Fprintln(w)
-	}
+	fmt.Println("}")
+	fmt.Println()
+
+	fmt.Fprintf(w, `const (
+	// decoding constants
+	maxShortCode = %d
+	delta = %#08x
+	offset30 = %d
+)`, maxShortCode, ci.delta, ci.offset30)
+
+	fmt.Fprintln(w)
+	fmt.Fprintln(w)
 
 	fmt.Fprintln(w, `var bounds = []struct {
+	_      [0]func()
 	delta  uint32 //
 	length uint8  // number of bits for the code
 	offset uint8  // offset into longCodes for first sym that has this length
@@ -186,10 +212,7 @@ func codeLookup(x uint32) (byte, uint8) {
 	printGoString(w, ci.longCodes[:], stringWidth)
 
 	fmt.Fprintln(w, `
-var codes00To99 = [100]struct{ 
-	length	uint16
-	code	uint16
-} {`)
+var codes00To99 = [100]code[uint16] {`)
 	for i := byte('0'); i <= '9'; i++ {
 		for j := byte('0'); j <= '9'; j++ {
 			fmt.Fprintf(w, "\t{length: %d, code: %#04x}, // %c%c\n",

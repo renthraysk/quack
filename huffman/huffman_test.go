@@ -186,6 +186,16 @@ func TestEncodeRFC1123Time(t *testing.T) {
 	}
 }
 
+func BenchmarkAppendRFC1123Time(b *testing.B) {
+	now := time.Now()
+	var buf [32]byte
+
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		_ = AppendRFC1123Time(buf[:0], now)
+	}
+}
+
 func FuzzEncodeDecode(f *testing.F) {
 	f.Add("")
 	f.Add("z")
@@ -226,7 +236,7 @@ func FuzzTime(f *testing.F) {
 	f.Add(int64(0))
 	f.Add(int64(1000000000))
 	f.Fuzz(func(t *testing.T, sec int64) {
-		expected := time.Unix(sec, 0) // no nano in RFC3339
+		expected := time.Unix(sec, 0) // no nano in RFC1123
 
 		// avoid any panics if 5+ digit year somehow.
 		if expected.Year() > 9999 {

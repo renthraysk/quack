@@ -88,70 +88,31 @@ func AppendInt(p []byte, i int64) []byte {
 func AppendRFC1123Time(p []byte, t time.Time) []byte {
 	u := t.UTC()
 	year, month, day := u.Date()
-	d := days[u.Weekday()]
-	x, n := uint64(d.code), uint(d.length) // "Day, "
-	p, x, n = append00To99(p, x, n, day)   // "Day, 01"
-
-	m := months[month-1]
-	x <<= m.length % 64
-	n += uint(m.length)
-	x |= uint64(m.code) // "Day, 01 Mon "
-
 	y := year / 100
 	if y >= 100 {
 		panic("year overflows 4 digits")
 	}
+
+	d := days[u.Weekday()]
+	x, n := uint64(d.code), uint(d.length) // "Day,"
+	p, x, n = appendByte(p, x, n, ' ')     // "Day, "
+	p, x, n = append00To99(p, x, n, day)   // "Day, 01"
+
+	m := months[month-1]
+	p, x, n = appendCode(p, x, n, uint64(m.code), uint(m.length)) // "Day, 01 Mon "
+
 	p, x, n = append00To99(p, x, n, y)
-	p, x, n = append00To99(p, x, n, year-(y*100))
-	p, x, n = appendByte(p, x, n, ' ')
+	p, x, n = append00To99(p, x, n, year-(y*100)) // "Day, 01 Mon 1990"
+	p, x, n = appendByte(p, x, n, ' ')            // "Day, 01 Mon 1990 "
 
 	hour, minute, second := u.Clock()
-	p, x, n = append00To99(p, x, n, hour)
+	p, x, n = append00To99(p, x, n, hour) // "Day, 01 Mon 1990 HH"
 	p, x, n = appendByte(p, x, n, ':')
-	p, x, n = append00To99(p, x, n, minute)
+	p, x, n = append00To99(p, x, n, minute) // "Day, 01 Mon 1990 HH:MM"
 	p, x, n = appendByte(p, x, n, ':')
-	p, x, n = append00To99(p, x, n, second)
-	// " GMT"
-	x <<= 27
-	x |= 0x0298b46f // "Day, 01 Mon 1990 HH:MM:SS GMT"
-	n += 27
-	if n >= 32 {
-		n %= 32
-		y := uint32(x >> n)
-		p = append(p, byte(y>>24), byte(y>>16), byte(y>>8), byte(y))
-	}
+	p, x, n = append00To99(p, x, n, second)           // "Day, 01 Mon 1990 HH:MM:SS"
+	p, x, n = appendCode(p, x, n, gmtCode, gmtLength) // "Day, 01 Mon 1990 HH:MM:SS GMT"
 	return appendFinal(p, x, n)
-}
-
-var days = [...]struct {
-	code   uint64
-	length uint8
-}{
-	{0x1badabe94, 33}, // "Sun, "
-	{0xd07abe94, 32},  // "Mon, "
-	{0xdf697e94, 32},  // "Tue, "
-	{0xe4593e94, 32},  // "Wed, "
-	{0x1be7b7e94, 33}, // "Thu, "
-	{0xc361be94, 32},  // "Fri, "
-	{0x6e1a7e94, 31},  // "Sat, "
-}
-
-var months = [...]struct {
-	code   uint32
-	length uint8
-}{
-	{0x14ca3a94, 30}, // " Jan "
-	{0x14c258d4, 30}, // " Feb "
-	{0x14d03b14, 30}, // " Mar "
-	{0x1486bb14, 30}, // " Apr "
-	{0x29a07e94, 31}, // " May "
-	{0x2996da94, 31}, // " Jun "
-	{0x2996da14, 31}, // " Jul "
-	{0x1486d994, 30}, // " Aug "
-	{0x14dc5ad4, 30}, // " Sep "
-	{0x0a6a2254, 29}, // " Oct "
-	{0x29a4fdd4, 31}, // " Nov "
-	{0x0a5f2914, 29}, // " Dec "
 }
 
 // appendByte appends the huffman code for byte c into the tuple (p, x, n)
@@ -159,16 +120,7 @@ var months = [...]struct {
 // Assumes x has less than 32 valid bits, and n to be less than 32.
 func appendByte(p []byte, x uint64, n uint, c byte) ([]byte, uint64, uint) {
 	// inlines
-	s := uint(codeLengths[c])
-	x <<= s % 64
-	x |= uint64(codes[c])
-	n += s
-	if n >= 32 {
-		n %= 32
-		y := uint32(x >> n)
-		p = append(p, byte(y>>24), byte(y>>16), byte(y>>8), byte(y))
-	}
-	return p, x, n
+	return appendCode(p, x, n, uint64(codes[c]), uint(codeLengths[c]))
 }
 
 // append00To99 appends the huffman codes for the two digit ASCII
@@ -177,10 +129,14 @@ func appendByte(p []byte, x uint64, n uint, c byte) ([]byte, uint64, uint) {
 // Assumes x has less than 32 valid bits, and n to be less than 32.
 func append00To99(p []byte, x uint64, n uint, i int) ([]byte, uint64, uint) {
 	// inlines
-	s := uint(codes00To99[i].length)
-	x <<= s % 64
-	x |= uint64(codes00To99[i].code)
-	n += s
+	return appendCode(p, x, n, uint64(codes00To99[i].code), uint(codes00To99[i].length))
+}
+
+func appendCode(p []byte, x uint64, n uint, code uint64, length uint) ([]byte, uint64, uint) {
+	// inlines
+	x <<= length % 64
+	x |= code
+	n += length
 	if n >= 32 {
 		n %= 32
 		y := uint32(x >> n)

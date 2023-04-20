@@ -1,6 +1,50 @@
 package huffman
 
+const (
+	gmtCode   = 0x0298b46f // " GMT"
+	gmtLength = 27
+)
+
+type code[T uint16 | uint32 | uint64] struct {
+	_      [0]func()
+	code   T
+	length uint8
+}
+
+var days = [...]code[uint32] {
+	{code: 0x06eb6afa, length: 27}, // "Sun,"
+	{code: 0x0341eafa, length: 26}, // "Mon,"
+	{code: 0x037da5fa, length: 26}, // "Tue,"
+	{code: 0x039164fa, length: 26}, // "Wed,"
+	{code: 0x06f9edfa, length: 27}, // "Thu,"
+	{code: 0x030d86fa, length: 26}, // "Fri,"
+	{code: 0x01b869fa, length: 25}, // "Sat,"
+}
+
+var months = [...]code[uint32] {
+	{code: 0x14ca3a94, length: 30}, // " Jan "
+	{code: 0x14c258d4, length: 30}, // " Feb "
+	{code: 0x14d03b14, length: 30}, // " Mar "
+	{code: 0x1486bb14, length: 30}, // " Apr "
+	{code: 0x29a07e94, length: 31}, // " May "
+	{code: 0x2996da94, length: 31}, // " Jun "
+	{code: 0x2996da14, length: 31}, // " Jul "
+	{code: 0x1486d994, length: 30}, // " Aug "
+	{code: 0x14dc5ad4, length: 30}, // " Sep "
+	{code: 0x0a6a2254, length: 29}, // " Oct "
+	{code: 0x29a4fdd4, length: 31}, // " Nov "
+	{code: 0x0a5f2914, length: 29}, // " Dec "
+}
+
+const (
+	// decoding constants
+	maxShortCode = 13
+	delta = 0xfff00000
+	offset30 = 253
+)
+
 var bounds = []struct {
+	_      [0]func()
 	delta  uint32 //
 	length uint8  // number of bits for the code
 	offset uint8  // offset into longCodes for first sym that has this length
@@ -224,10 +268,7 @@ const longCodes = "" +
 	"\x0f\x10\x11\x12\x13\x14\x15\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f" +
 	"\x7f\xdc\xf9\n\r\x16"
 
-var codes00To99 = [100]struct {
-	length uint16
-	code   uint16
-}{
+var codes00To99 = [100]code[uint16] {
 	{length: 10, code: 0x0000}, // 00
 	{length: 10, code: 0x0001}, // 01
 	{length: 10, code: 0x0002}, // 02
