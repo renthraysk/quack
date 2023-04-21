@@ -99,7 +99,7 @@ func AppendRFC1123Time(p []byte, t time.Time) []byte {
 	p, x, n = append00To99(p, x, n, day)   // "Day, 01"
 
 	m := months[month-1]
-	p, x, n = appendCode(p, x, n, uint64(m.code), uint(m.length)) // "Day, 01 Mon "
+	p, x, n = appendCode(p, x, n, m.code, m.length) // "Day, 01 Mon "
 
 	p, x, n = append00To99(p, x, n, y)
 	p, x, n = append00To99(p, x, n, year-(y*100)) // "Day, 01 Mon 1990"
@@ -120,7 +120,7 @@ func AppendRFC1123Time(p []byte, t time.Time) []byte {
 // Assumes x has less than 32 valid bits, and n to be less than 32.
 func appendByte(p []byte, x uint64, n uint, c byte) ([]byte, uint64, uint) {
 	// inlines
-	return appendCode(p, x, n, uint64(codes[c]), uint(codeLengths[c]))
+	return appendCode(p, x, n, codes[c], codeLengths[c])
 }
 
 // append00To99 appends the huffman codes for the two digit ASCII
@@ -129,14 +129,14 @@ func appendByte(p []byte, x uint64, n uint, c byte) ([]byte, uint64, uint) {
 // Assumes x has less than 32 valid bits, and n to be less than 32.
 func append00To99(p []byte, x uint64, n uint, i int) ([]byte, uint64, uint) {
 	// inlines
-	return appendCode(p, x, n, uint64(codes00To99[i].code), uint(codes00To99[i].length))
+	return appendCode(p, x, n, uint32(codes00To99[i].code), codes00To99[i].length)
 }
 
-func appendCode(p []byte, x uint64, n uint, code uint64, length uint) ([]byte, uint64, uint) {
+func appendCode(p []byte, x uint64, n uint, code uint32, length uint8) ([]byte, uint64, uint) {
 	// inlines
 	x <<= length % 64
-	x |= code
-	n += length
+	x |= uint64(code)
+	n += uint(length)
 	if n >= 32 {
 		n %= 32
 		y := uint32(x >> n)
