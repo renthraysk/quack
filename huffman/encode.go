@@ -51,23 +51,25 @@ func AppendStringLower(p []byte, s string) []byte {
 }
 
 // AppendInt
-func AppendInt(p []byte, i int64) []byte {
-	if i == 0 {
+func AppendInt(p []byte, v int64) []byte {
+	if v == 0 {
 		return appendFinal(p, uint64(codes['0']), uint(codeLengths['0']))
 	}
 	var x uint64
 	var n uint
+	var a [16]uint8
 
-	u := uint64(i)
-	if i < 0 {
-		u = uint64(-i)
+	u := uint64(v)
+	if v < 0 {
+		u = uint64(-v)
 		x = uint64(codes['-'])
 		n = uint(codeLengths['-'])
 	}
-	a := make([]uint8, 0, 16)
+	i := len(a)
 	for u >= 100 {
 		w := u / 100
-		a = append(a, uint8(u-w*100))
+		i--
+		a[i] = uint8(u - w*100)
 		u = w
 	}
 	// u < 100
@@ -77,7 +79,7 @@ func AppendInt(p []byte, i int64) []byte {
 	case u > 0:
 		p, x, n = appendByte(p, x, n, byte(u+'0'))
 	}
-	for i := len(a) - 1; i >= 0; i-- {
+	for ; i < len(a); i++ {
 		p, x, n = append00To99(p, x, n, int(a[i]))
 	}
 	return appendFinal(p, x, n)
