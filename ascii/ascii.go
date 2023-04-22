@@ -10,7 +10,7 @@ const (
 
 	special = 1<<'!' | 1<<'#' | 1<<'$' | 1<<'%' | 1<<'&' | 1<<'\'' | 1<<'*' |
 		1<<'+' | 1<<'-' | 1<<'.' | 1<<'^' | 1<<'_' | 1<<'`' | 1<<'|' |
-		1<<'~'
+		1<<'~' // !#$&'*+-.^_`|~
 
 	// token is the set of characters allowed in pre HTTP/3 names.
 	token = lower | upper | digits | special
@@ -51,10 +51,6 @@ func isToken3Char(c byte) bool {
 	return c < 0x80 && isIn(c, token3%(1<<64), token3>>64)
 }
 
-func isValueChar(c byte) bool {
-	return c >= 0x80 || isIn(c, fieldContent%(1<<64), fieldContent>>64)
-}
-
 func IsNameValid(n []byte) bool {
 	for _, c := range n {
 		if !isToken3Char(c) {
@@ -66,8 +62,20 @@ func IsNameValid(n []byte) bool {
 
 // https://www.rfc-editor.org/rfc/rfc9110#section-5.5
 func IsValueValid(v []byte) bool {
-	for _, c := range v {
-		if !isValueChar(c) {
+	if len(v) <= 0 {
+		return false
+	}
+	// Has to start with a field-vchar
+	// field-vchar    = VCHAR / obs-text
+	// obs-text       = %x80-FF
+	if v[0] < 0x80 && !isIn(v[0], vchar%(1<<64), vchar>>64) {
+		return false
+	}
+	// Subsequent characters can include horizontal spaces.
+	// field-content  = field-vchar
+	// [ 1*( SP / HTAB / field-vchar ) field-vchar ]
+	for _, c := range v[1:] {
+		if c < 0x80 && !isIn(c, fieldContent%(1<<64), fieldContent>>64) {
 			return false
 		}
 	}
@@ -100,4 +108,22 @@ func ToCanonical(b []byte) string {
 		}
 	}
 	return string(b)
+}
+
+func AppendCanonical(p []byte, s string) []byte {
+	i := len(p)
+	p = append(p, s...)
+	nextA := 'a'
+	for ; i < len(p); i++ {
+		c := p[i]
+		if c-byte(nextA) < 26 {
+			// wrong cased letter
+			p[i] = c ^ 0x20 // toggle case
+		}
+		nextA = 'A'
+		if c == '-' {
+			nextA = 'a'
+		}
+	}
+	return p
 }
