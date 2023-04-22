@@ -21,6 +21,18 @@ func TestIsValueValid(t *testing.T) {
 	if !IsValueValid([]byte{'\xFF'}) {
 		t.Error("\\xFF expected true, got false")
 	}
+
+	for _, s := range []string{"a", "a b c"} {
+		if !IsValueValid([]byte(s)) {
+			t.Errorf("%q expected valid, got invalid", s)
+		}
+	}
+	for _, s := range []string{" abc", "abc ", " abc "} {
+		if IsValueValid([]byte(s)) {
+			t.Errorf("%q expected invalid, got valid", s)
+		}
+	}
+
 }
 
 func TestAppendLower(t *testing.T) {

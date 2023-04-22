@@ -60,29 +60,38 @@ func IsNameValid(n []byte) bool {
 	return true
 }
 
+// isFieldChar  returns true if c is in the field-vchar set, false otherwise
+// field-vchar    = VCHAR / obs-text
+// obs-text       = %x80-FF
+func isFieldVChar(c byte) bool {
+	return c >= 0x80 || isIn(c, vchar%(1<<64), vchar>>64)
+}
+
+// isFieldContent returns true if c is in the field-content set, false otherwise
+// field-content  = field-vchar
+// [ 1*( SP / HTAB / field-vchar ) field-vchar ]
+func isFieldContent(c byte) bool {
+	return c >= 0x80 || isIn(c, fieldContent%(1<<64), fieldContent>>64)
+}
+
 // https://www.rfc-editor.org/rfc/rfc9110#section-5.5
 func IsValueValid(v []byte) bool {
 	if len(v) <= 0 {
 		return false
 	}
 	// Has to start with a field-vchar
-	// field-vchar    = VCHAR / obs-text
-	// obs-text       = %x80-FF
-	if v[0] < 0x80 && !isIn(v[0], vchar%(1<<64), vchar>>64) {
+	if !isFieldVChar(v[0]) {
 		return false
 	}
-	// Subsequent characters can include horizontal spaces.
-	// field-content  = field-vchar
-	// [ 1*( SP / HTAB / field-vchar ) field-vchar ]
-	i := 2
-	for ; i < len(v); i++ {
-		if c := v[i-1]; c < 0x80 && !isIn(c, fieldContent%(1<<64), fieldContent>>64) {
-			return false
+	if len(v) > 2 {
+		for _, c := range v[1 : len(v)-2] {
+			if !isFieldContent(c) {
+				return false
+			}
 		}
 	}
 	// Has to end with a field-vchar
-	c := v[i]
-	return c >= 0x80 || isIn(c, vchar%(1<<64), vchar>>64)
+	return isFieldVChar(v[len(v)-1])
 }
 
 // AppendLower appends the lower cased version of s to p.
