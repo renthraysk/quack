@@ -14,11 +14,11 @@ func Decode(dst, in []byte) ([]byte, error) {
 		in = in[4:]
 		n += 32
 		for n >= 32 {
-			b, s := codeLookup(uint32(x >> (n % 32))) // n<=59 so %32 is fine
-			if s == 0 {
+			b, codeLen := codeLookup(uint32(x >> (n % 32))) // n<=59 so %32 is fine
+			if codeLen == 0 {
 				return nil, errEOSEncoded
 			}
-			n -= uint(s)
+			n -= uint(codeLen)
 			dst = append(dst, b)
 		}
 	}
@@ -29,23 +29,23 @@ func Decode(dst, in []byte) ([]byte, error) {
 		n += 8
 	}
 	for n >= 32 {
-		b, s := codeLookup(uint32(x >> (n % 32)))
-		if s == 0 {
+		b, codeLen := codeLookup(uint32(x >> (n % 32)))
+		if codeLen == 0 {
 			return nil, errEOSEncoded
 		}
-		n -= uint(s)
+		n -= uint(codeLen)
 		dst = append(dst, b)
 	}
 	for y := uint32(x << (32 - n)); n >= minCodeLength; {
-		b, s := codeLookup(y)
-		if s == 0 {
+		b, codeLen := codeLookup(y)
+		if codeLen == 0 {
 			return nil, errEOSEncoded
 		}
-		if uint(s) > n {
+		if uint(codeLen) > n {
 			break
 		}
-		n -= uint(s)
-		y <<= s
+		n -= uint(codeLen)
+		y <<= codeLen
 		dst = append(dst, b)
 	}
 	if m := uint64(1<<(n%64)) - 1; x&m != m {
