@@ -74,12 +74,15 @@ func IsValueValid(v []byte) bool {
 	// Subsequent characters can include horizontal spaces.
 	// field-content  = field-vchar
 	// [ 1*( SP / HTAB / field-vchar ) field-vchar ]
-	for _, c := range v[1:] {
-		if c < 0x80 && !isIn(c, fieldContent%(1<<64), fieldContent>>64) {
+	i := 2
+	for ; i < len(v); i++ {
+		if c := v[i-1]; c < 0x80 && !isIn(c, fieldContent%(1<<64), fieldContent>>64) {
 			return false
 		}
 	}
-	return true
+	// Has to end with a field-vchar
+	c := v[i]
+	return c >= 0x80 || isIn(c, vchar%(1<<64), vchar>>64)
 }
 
 // AppendLower appends the lower cased version of s to p.
