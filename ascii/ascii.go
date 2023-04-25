@@ -60,7 +60,7 @@ func IsNameValid(n []byte) bool {
 	return true
 }
 
-// isFieldChar  returns true if c is in the field-vchar set, false otherwise
+// isFieldChar returns true if c is in the field-vchar set, false otherwise
 // field-vchar    = VCHAR / obs-text
 // obs-text       = %x80-FF
 func isFieldVChar(c byte) bool {
