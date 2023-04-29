@@ -50,20 +50,3 @@ func TestAppendLower(t *testing.T) {
 		}
 	}
 }
-
-func TestToCanonical(t *testing.T) {
-	tt := []struct {
-		b        string
-		expected string
-	}{
-		{"content-type", "Content-Type"},
-		{"cONTENT-tYPE", "Content-Type"},
-	}
-	for _, c := range tt {
-		b := []byte(c.b)
-		ToCanonical(b)
-		if got := string(b); string(got) != c.expected {
-			t.Errorf("expected %q, got %q", c.expected, got)
-		}
-	}
-}

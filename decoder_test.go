@@ -31,19 +31,9 @@ var requestQuack = []headerField{
 	{":scheme", "https"},
 	{":authority", "localhost"},
 	{":path", "/"},
-	{"Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8"},
-	{"Accept-Encoding", "gzip, deflate, br"},
-	{"Accept-Language", "en-GB,en;q=0.5"}}
-
-func newRequest(e *Encoder, method, scheme, authority, path string) ([]headerField, []byte) {
-	expected := []headerField{
-		{":method", method},
-		{":scheme", scheme},
-		{":authority", authority},
-		{":path", path},
-	}
-	return expected, e.NewRequest(nil, method, scheme, authority, path)
-}
+	{"accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8"},
+	{"accept-encoding", "gzip, deflate, br"},
+	{"accept-language", "en-GB,en;q=0.5"}}
 
 func dehex(tb testing.TB, s string) []byte {
 	b, err := hex.DecodeString(s)

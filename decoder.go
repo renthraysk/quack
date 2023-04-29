@@ -197,7 +197,7 @@ func readLiteralName(p, decodeBuf []byte) (string, []byte, error) {
 	if !ascii.IsNameValid(b) {
 		return "", p, errNameInvalid
 	}
-	return ascii.ToCanonical(b), q[n:], nil // Allocation
+	return string(b), q[n:], nil // Allocation
 }
 
 // readStringLiteral reads a string literal from p. Will use decodeBuf if the

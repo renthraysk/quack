@@ -1,143 +1,175 @@
 package quack
 
 import (
-	"time"
-
 	"github.com/renthraysk/quack/ascii"
 	"github.com/renthraysk/quack/huffman"
 )
 
-type Encoder struct {
-	dt DT
+// match returned status of a table search
+type match uint
+
+const (
+	// matchNone No match
+	matchNone match = iota
+	// matchName Matched name only
+	matchName
+	// matchNameValue Matched name & value
+	matchNameValue
+)
+
+// Control controls finer details of how a specific headers should be encoded.
+type Control uint8
+
+const (
+	// NeverIndex header field should never be put in the dynamic table.
+	NeverIndex Control = 1 << iota
+	// NeverHuffman never compress the value field.
+	NeverHuffman
+)
+
+func (c Control) NeverIndex() bool    { return c&NeverIndex != 0 }
+func (c Control) ShouldHuffman() bool { return c&NeverHuffman == 0 }
+
+// neverIndex returns the value of yes if the header should not be index, 0
+// otherwise.
+func (c Control) neverIndex(yes byte) byte {
+	if c.NeverIndex() {
+		return yes
+	}
+	return 0
 }
 
-// https://www.rfc-editor.org/rfc/rfc9114.html#name-request-pseudo-header-field
-func (e *Encoder) NewRequest(p []byte, method, scheme, authority, path string) []byte {
-	p = append(p, 0, 0)
-	p = e.appendMethod(p, method)
-	p = e.appendScheme(p, scheme)
-	if authority != "" {
-		p = e.appendAuthority(p, authority)
-	}
-	// This (:path) pseudo-header field MUST NOT be empty for "http" or "https"
-	// URIs; "http" or "https" URIs that do not contain a path component MUST
-	// include a value of / (ASCII 0x2f).
-	if path == "" && (scheme == "http" || scheme == "https") {
-		path = "/"
-		// An OPTIONS request that does not include a path component includes
-		// the value *
-		if method == "OPTIONS" {
-			path = "*"
+// defaultHeaderControls default set of headers that require special encoding
+// treatment
+var defaultHeaderControls = map[string]Control{
+	"authorization":       NeverIndex | NeverHuffman,
+	"content-md5":         NeverIndex | NeverHuffman,
+	"date":                NeverIndex,
+	"etag":                NeverIndex,
+	"if-modified-since":   NeverIndex,
+	"if-unmodified-since": NeverIndex,
+	"last-modified":       NeverIndex,
+	"location":            NeverIndex,
+	"match":               NeverIndex,
+	"range":               NeverIndex,
+	"retry-after":         NeverIndex,
+	"set-cookie":          NeverIndex,
+}
+
+type Encoder struct {
+	dt             DT
+	headerControls map[string]Control
+}
+
+func NewEncoder() *Encoder {
+	return &Encoder{headerControls: defaultHeaderControls}
+}
+
+func (e *Encoder) encodeHeader(p []byte, header map[string][]string) []byte {
+	var lowerBuf [len("access-control-allow-credentials")]byte
+
+	for name, values := range header {
+		// @TODO combine validation & AppendLower
+		if !ascii.IsNameValid(name) {
+			continue
+		}
+		lower := string(ascii.AppendLower(lowerBuf[:0], name))
+
+		for _, value := range values {
+			if ascii.IsValueValid(value) {
+				p = e.encodeHeaderField(p, lower, value)
+			}
 		}
 	}
-	p = e.appendPath(p, path)
 	return p
 }
 
-// https://www.rfc-editor.org/rfc/rfc9114.html#name-the-connect-method
-func (e *Encoder) NewConnect(p []byte, authority string) []byte {
-	p = append(p, 0, 0)
-	p = e.appendMethod(p, "CONNECT")
-	p = e.appendAuthority(p, authority)
-	return p
-}
-
-// https://www.rfc-editor.org/rfc/rfc9114.html#name-response-pseudo-header-fiel
-func (e *Encoder) NewResponse(p []byte, statusCode int) []byte {
-	p = append(p, 0, 0)
-	p = e.appendStatus(p, statusCode)
-	return p
-}
-
-func (e *Encoder) appendHeaderField(p []byte, name, value string, neverIndex bool) []byte {
-	// @TODO Dynamic stuff goes here.
-
-	// appendLiteralFieldWithoutNameReference
-	p = appendLiteralName(p, name, neverIndex)
-	return appendStringLiteral(p, value)
-}
-
-// appendLiteralName appends the QPACK encoding of the lower case of name to p,
-// applying huffman encoding if it would result in savings.
-// https://datatracker.ietf.org/doc/html/rfc9204#name-literal-field-line-with-lit
-// https://www.rfc-editor.org/rfc/rfc9114.html#name-http-fields
-func appendLiteralName(p []byte, name string, neverIndex bool) []byte {
+func (e *Encoder) encodeHeaderField(p []byte, name, value string) []byte {
 	const (
-		// layout of the first byte of the length of a name literal
-		Prefix         byte = 0b0010_0000
-		NeverIndex     byte = 0b0001_0000
-		HuffmanEncoded byte = 0b0000_1000
-		NameLenBits    byte = 0b0000_0111
+		// https://www.rfc-editor.org/rfc/rfc9204.html#name-literal-field-line-with-nam
+
+		// P '01' 2-bit Pattern of literal field line with name reference
+		P = 0b0100_0000
+		// N Never index bit of literal field line with name reference
+		N = 0b0010_0000
+		// T Static table bit of literal field line with name reference
+		T = 0b0001_0000
+		// M Mask of literal field line with name reference
+		M = 0b0000_1111
 	)
-	prefix := Prefix
-	if neverIndex {
-		prefix = Prefix | NeverIndex
+
+	i, m := staticLookup(name, value)
+	if m == matchNameValue {
+		// https://www.rfc-editor.org/rfc/rfc9204.html#name-indexed-field-line
+		return appendVarint(p, i, 0b0011_1111, 0b1100_0000)
 	}
+
+	ctrl := e.headerControls[name]
+	if false /* @TODO */ {
+		switch di, dm := e.dt.lookup(name, value); dm {
+		case matchNameValue:
+			// https://www.rfc-editor.org/rfc/rfc9204.html#name-indexed-field-line
+			indexBits, prefix := byte(0b0011_1111), byte(0b1000_0000)
+			if false {
+				// https://www.rfc-editor.org/rfc/rfc9204.html#name-indexed-field-line-with-pos
+				indexBits, prefix = 0b0000_1111, 0b0001_0000
+			}
+			return appendVarint(p, di, indexBits, prefix)
+		case matchName:
+			// Prefer static table name matches over dynamic table name matches.
+			if m == matchNone {
+				p = appendVarint(p, di, M, P|ctrl.neverIndex(N))
+				return appendStringLiteral(p, value, ctrl)
+			}
+		}
+	}
+	switch m {
+	case matchName:
+		p = appendVarint(p, i, M, P|ctrl.neverIndex(N)|T)
+	case matchNone:
+		p = appendLiteralName(p, name, ctrl)
+	}
+	return appendStringLiteral(p, value, ctrl)
+}
+
+func appendLiteralName(p []byte, name string, ctrl Control) []byte {
+	const (
+		// https://www.rfc-editor.org/rfc/rfc9204.html#name-literal-field-line-with-lit
+		// '001' 3 bit pattern
+		P = 0b0010_0000
+		// Never index bit
+		N = 0b0001_0000
+		// Huffman encoded bit
+		H = 0b0000_1000
+		// Mask
+		M = 0b0000_0111
+	)
 	n := uint64(len(name))
 	if h := huffman.EncodeLengthLower(name); h < n {
-		p = appendVarint(p, h, NameLenBits, prefix|HuffmanEncoded)
+		p = appendVarint(p, h, M, P|ctrl.neverIndex(N)|H)
 		return huffman.AppendStringLower(p, name)
 	}
-	p = appendVarint(p, n, NameLenBits, prefix)
+	p = appendVarint(p, n, M, P|ctrl.neverIndex(N))
 	return ascii.AppendLower(p, name)
 }
 
-func appendStringLiteralLength(p []byte, n uint64, huffmanEncoded bool) []byte {
+// appendStringLiteral appends the QPACK encoded string literal s to p.
+func appendStringLiteral(p []byte, s string, ctrl Control) []byte {
 	const (
 		// layout of the first byte of the length of a string literal
-		HuffmanEncoded byte = 0b1000_0000
-		StringLenBits  byte = 0b0111_1111
+		// H Huffman encoded
+		H = 0b1000_0000
+		// M Mask
+		M = 0b0111_1111
 	)
-	var prefix byte
-	if huffmanEncoded {
-		prefix = HuffmanEncoded
-	}
-	return appendVarint(p, n, StringLenBits, prefix)
-}
 
-// appendStringLiteral appens the QPACK encoded string literal s to p.
-func appendStringLiteral(p []byte, s string) []byte {
 	n := uint64(len(s))
-	if h := huffman.EncodeLength(s); h < n {
-		p = appendStringLiteralLength(p, h, true)
-		return huffman.AppendString(p, s)
+	if n > 2 && ctrl.ShouldHuffman() {
+		if h := huffman.EncodeLength(s); h < n {
+			p = appendVarint(p, h, M, H)
+			return huffman.AppendString(p, s)
+		}
 	}
-	p = appendStringLiteralLength(p, n, false)
+	p = appendVarint(p, n, M, 0)
 	return append(p, s...)
-}
-
-// appendInt appends the QPACK string literal representation of int64 i.
-func appendInt(p []byte, i int64) []byte {
-	const HuffmanEncoded byte = 0b1000_0000
-
-	if -9 <= i && i <= 99 {
-		// No savings from huffman encoding 2 characters.
-		if i < 0 {
-			return append(p, 2, '-', byte('0'-i))
-		}
-		if i <= 9 {
-			return append(p, 1, byte(i)+'0')
-		}
-		j := i / 10
-		return append(p, 2, byte(j)+'0', byte(i-10*j)+'0')
-	}
-
-	j := len(p)
-	p = append(p, 0)
-	p = huffman.AppendInt(p, i)
-	p[j] = HuffmanEncoded | uint8(len(p)-j-1)
-	return p
-}
-
-// appeneime appends the QPACK string literal encoded RFC1123 representation
-// of t to p.
-func appendTime(p []byte, t time.Time) []byte {
-	// RFC1123 time length is less 0x7F so only need a single byte for length
-	const HuffmanEncoded byte = 0b1000_0000
-
-	i := len(p)
-	p = append(p, 0)
-	p = huffman.AppendRFC1123Time(p, t)
-	p[i] = HuffmanEncoded | uint8(len(p)-i-1)
-	return p
 }

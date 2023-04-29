@@ -11,19 +11,6 @@ const (
 	special = 1<<'!' | 1<<'#' | 1<<'$' | 1<<'%' | 1<<'&' | 1<<'\'' | 1<<'*' |
 		1<<'+' | 1<<'-' | 1<<'.' | 1<<'^' | 1<<'_' | 1<<'`' | 1<<'|' |
 		1<<'~' // !#$&'*+-.^_`|~
-
-	// token is the set of characters allowed in pre HTTP/3 names.
-	token = lower | upper | digits | special
-
-	// token3 is the set of characters allowed in HTTP/3 incoming names.
-	token3 = lower | digits | special
-
-	// field-content  = field-vchar
-	// [ 1*( SP / HTAB / field-vchar ) field-vchar ]
-	// field-vchar    = VCHAR / obs-text
-	// obs-text       = %x80-FF
-	// https://www.rfc-editor.org/rfc/rfc9110#name-field-values
-	fieldContent = sp | htab | vchar
 )
 
 // isUpper returns true if c is a upper case ASCII chararacter.
@@ -45,15 +32,34 @@ func isIn(c byte, lo, hi uint64) bool {
 	return (1<<(c%64))&m != 0
 }
 
+func isTokenChar(c byte) bool {
+	// token is the set of characters allowed in pre HTTP/3 names.
+	const token = lower | upper | digits | special
+
+	return c < 0x80 && isIn(c, token%(1<<64), token>>64)
+}
+
 // isToken3Char returns true if byte c is a valid in a HTTP/3 name literal, false
 // otherwise.
 func isToken3Char(c byte) bool {
+	// token3 is the set of characters allowed in HTTP/3 incoming names.
+	const token3 = lower | digits | special
+
 	return c < 0x80 && isIn(c, token3%(1<<64), token3>>64)
 }
 
-func IsNameValid(n []byte) bool {
-	for _, c := range n {
-		if !isToken3Char(c) {
+func IsNameValid[T string | []byte](n T) bool {
+	for i := 0; i < len(n); i++ {
+		if !isTokenChar(n[i]) {
+			return false
+		}
+	}
+	return true
+}
+
+func IsName3Valid[T string | []byte](n T) bool {
+	for i := 0; i < len(n); i++ {
+		if !isToken3Char(n[i]) {
 			return false
 		}
 	}
@@ -70,12 +76,16 @@ func isFieldVChar(c byte) bool {
 // isFieldContent returns true if c is in the field-content set, false otherwise
 // field-content  = field-vchar
 // [ 1*( SP / HTAB / field-vchar ) field-vchar ]
+// obs-text       = %x80-FF
+// https://www.rfc-editor.org/rfc/rfc9110#name-field-values
 func isFieldContent(c byte) bool {
+	const fieldContent = sp | htab | vchar
+
 	return c >= 0x80 || isIn(c, fieldContent%(1<<64), fieldContent>>64)
 }
 
 // https://www.rfc-editor.org/rfc/rfc9110#section-5.5
-func IsValueValid(v []byte) bool {
+func IsValueValid[T []byte | string](v T) bool {
 	if len(v) <= 0 {
 		return false
 	}
@@ -83,11 +93,14 @@ func IsValueValid(v []byte) bool {
 	if !isFieldVChar(v[0]) {
 		return false
 	}
-	if len(v) > 2 {
-		for _, c := range v[1 : len(v)-2] {
-			if !isFieldContent(c) {
-				return false
-			}
+	if len(v) < 2 {
+		return true
+	}
+	for i := 1; i < len(v); i++ {
+		// double checking last char is ok
+		// as field-vchar is subset of field-content
+		if !isFieldContent(v[i]) {
+			return false
 		}
 	}
 	// Has to end with a field-vchar
@@ -101,40 +114,6 @@ func AppendLower(p []byte, s string) []byte {
 	for ; i < len(p); i++ {
 		if c := p[i]; isUpper(c) {
 			p[i] = c | 0x20
-		}
-	}
-	return p
-}
-
-// ToCanonical
-func ToCanonical(b []byte) string {
-	nextA := 'a'
-	for i, c := range b {
-		if c-byte(nextA) < 26 {
-			// wrong cased letter
-			b[i] = c ^ 0x20 // toggle case
-		}
-		nextA = 'A'
-		if c == '-' {
-			nextA = 'a'
-		}
-	}
-	return string(b)
-}
-
-func AppendCanonical(p []byte, s string) []byte {
-	i := len(p)
-	p = append(p, s...)
-	nextA := 'a'
-	for ; i < len(p); i++ {
-		c := p[i]
-		if c-byte(nextA) < 26 {
-			// wrong cased letter
-			p[i] = c ^ 0x20 // toggle case
-		}
-		nextA = 'A'
-		if c == '-' {
-			nextA = 'a'
 		}
 	}
 	return p
