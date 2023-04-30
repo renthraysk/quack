@@ -14,6 +14,6 @@ func (e *Encoder) NewResponse(p []byte, statusCode int, header map[string][]stri
 	if _, ok := header["Date"]; !ok {
 		p = appendDate(p, time.Now())
 	}
-	p = e.encodeHeader(p, header)
+	p = e.appendHeader(p, header)
 	return p, nil
 }

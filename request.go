@@ -35,7 +35,7 @@ func (e *Encoder) NewRequest(p []byte, method, scheme, authority, path string, h
 	p = appendScheme(p, scheme)
 	p = appendAuthority(p, authority)
 	p = appendPath(p, path)
-	p = e.encodeHeader(p, header)
+	p = e.appendHeader(p, header)
 	return p, nil
 }
 
@@ -49,6 +49,6 @@ func (e *Encoder) NewConnect(p []byte, authority string, header map[string][]str
 	// https://www.rfc-editor.org/rfc/rfc9114.html#name-http-control-data
 	p = appendMethod(p, "CONNECT")
 	p = appendAuthority(p, authority)
-	p = e.encodeHeader(p, header)
+	p = e.appendHeader(p, header)
 	return p, nil
 }

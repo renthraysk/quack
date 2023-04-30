@@ -17,74 +17,74 @@ const (
 	matchNameValue
 )
 
-// Control controls finer details of how a specific headers should be encoded.
-type Control uint8
+// control controls finer details of how a specific headers should be encoded.
+type control uint8
 
 const (
-	// NeverIndex header field should never be put in the dynamic table.
-	NeverIndex Control = 1 << iota
-	// NeverHuffman never compress the value field.
-	NeverHuffman
+	// neverIndex header field should never be put in the dynamic table.
+	neverIndex control = 1 << iota
+	// neverHuffman never compress the value field.
+	neverHuffman
 )
 
-func (c Control) NeverIndex() bool    { return c&NeverIndex != 0 }
-func (c Control) ShouldHuffman() bool { return c&NeverHuffman == 0 }
+func (c control) shouldHuffman() bool { return c&neverHuffman == 0 }
 
-// neverIndex returns the value of yes if the header should not be index, 0
+// neverIndex returns the value of yes if the header should not be indexed, 0
 // otherwise.
-func (c Control) neverIndex(yes byte) byte {
-	if c.NeverIndex() {
+func (c control) neverIndex(yes byte) byte {
+	if c&neverIndex != 0 {
 		return yes
 	}
 	return 0
 }
 
-// defaultHeaderControls default set of headers that require special encoding
-// treatment
-var defaultHeaderControls = map[string]Control{
-	"authorization":       NeverIndex | NeverHuffman,
-	"content-md5":         NeverIndex | NeverHuffman,
-	"date":                NeverIndex,
-	"etag":                NeverIndex,
-	"if-modified-since":   NeverIndex,
-	"if-unmodified-since": NeverIndex,
-	"last-modified":       NeverIndex,
-	"location":            NeverIndex,
-	"match":               NeverIndex,
-	"range":               NeverIndex,
-	"retry-after":         NeverIndex,
-	"set-cookie":          NeverIndex,
-}
-
 type Encoder struct {
-	dt             DT
-	headerControls map[string]Control
+	dt DT
 }
 
 func NewEncoder() *Encoder {
-	return &Encoder{headerControls: defaultHeaderControls}
+	return &Encoder{}
 }
 
-func (e *Encoder) encodeHeader(p []byte, header map[string][]string) []byte {
+func (e *Encoder) appendHeader(p []byte, header map[string][]string) []byte {
 	var lowerBuf [len("access-control-allow-credentials")]byte
 
 	for name, values := range header {
 		// @TODO combine validation & AppendLower
-		if !ascii.IsNameValid(name) {
-			continue
-		}
+		//		if !ascii.IsNameValid(name) {
+		//			continue
+		//		}
 		lower := string(ascii.AppendLower(lowerBuf[:0], name))
 
 		for _, value := range values {
-			if ascii.IsValueValid(value) {
-				p = e.encodeHeaderField(p, lower, value)
-			}
+			//			if ascii.IsValueValid(value) {
+			p = e.appendField(p, lower, value)
+			//			}
 		}
 	}
 	return p
 }
 
-func (e *Encoder) encodeHeaderField(p []byte, name, value string) []byte {
+func (e *Encoder) headerControl(name string) control {
+	switch name {
+	case "authorization", "content-md5":
+		return neverIndex | neverHuffman
+	case "date",
+		"etag",
+		"if-modified-since",
+		"if-unmodified-since",
+		"last-modified",
+		"location",
+		"match",
+		"range",
+		"retry-after",
+		"set-cookie":
+		return neverIndex
+	}
+	return 0
+}
+
+func (e *Encoder) appendField(p []byte, name, value string) []byte {
 	const (
 		// https://www.rfc-editor.org/rfc/rfc9204.html#name-literal-field-line-with-nam
 
@@ -104,7 +104,7 @@ func (e *Encoder) encodeHeaderField(p []byte, name, value string) []byte {
 		return appendVarint(p, i, 0b0011_1111, 0b1100_0000)
 	}
 
-	ctrl := e.headerControls[name]
+	ctrl := e.headerControl(name)
 	if false /* @TODO */ {
 		switch di, dm := e.dt.lookup(name, value); dm {
 		case matchNameValue:
@@ -132,7 +132,7 @@ func (e *Encoder) encodeHeaderField(p []byte, name, value string) []byte {
 	return appendStringLiteral(p, value, ctrl)
 }
 
-func appendLiteralName(p []byte, name string, ctrl Control) []byte {
+func appendLiteralName(p []byte, name string, ctrl control) []byte {
 	const (
 		// https://www.rfc-editor.org/rfc/rfc9204.html#name-literal-field-line-with-lit
 		// '001' 3 bit pattern
@@ -154,7 +154,7 @@ func appendLiteralName(p []byte, name string, ctrl Control) []byte {
 }
 
 // appendStringLiteral appends the QPACK encoded string literal s to p.
-func appendStringLiteral(p []byte, s string, ctrl Control) []byte {
+func appendStringLiteral(p []byte, s string, ctrl control) []byte {
 	const (
 		// layout of the first byte of the length of a string literal
 		// H Huffman encoded
@@ -164,7 +164,7 @@ func appendStringLiteral(p []byte, s string, ctrl Control) []byte {
 	)
 
 	n := uint64(len(s))
-	if n > 2 && ctrl.ShouldHuffman() {
+	if n > 2 && ctrl.shouldHuffman() {
 		if h := huffman.EncodeLength(s); h < n {
 			p = appendVarint(p, h, M, H)
 			return huffman.AppendString(p, s)

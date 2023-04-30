@@ -91,7 +91,7 @@ func testHeaderField(t *testing.T, name, value string) {
 			t.Fatalf("unknown pseudo header %s", name)
 		}
 	} else {
-		b = e.encodeHeaderField(b, name, value)
+		b = e.appendField(b, name, value)
 	}
 	d := new(Decoder)
 	err := d.Decode(b, func(k, v string) {
