@@ -3,14 +3,21 @@ package ascii
 const (
 	sp     = 1 << ' '
 	htab   = 1 << '\t'
-	lower  = ((1 << 26) - 1) << 'a'              // 'a'-'z'
-	upper  = ((1 << 26) - 1) << 'A'              // 'A'-'Z'
+	lower  = ((1 << 26) - 1) << 'a' // 'a'-'z'
+	upper  = ((1 << 26) - 1) << 'A' // 'A'-'Z'
+	alpha  = lower | upper
 	digits = ((1 << 10) - 1) << '0'              // '0'-'9'
 	vchar  = ((1 << (1 + '~' - '!')) - 1) << '!' // '!'-'~'
 
+	/*
+		tchar          = "!" / "#" / "$" / "%" / "&" / "'" / "*"
+			/ "+" / "-" / "." / "^" / "_" / "`" / "|" / "~"
+		    / DIGIT / ALPHA
+			; any VCHAR, except delimiters
+	*/
 	special = 1<<'!' | 1<<'#' | 1<<'$' | 1<<'%' | 1<<'&' | 1<<'\'' | 1<<'*' |
 		1<<'+' | 1<<'-' | 1<<'.' | 1<<'^' | 1<<'_' | 1<<'`' | 1<<'|' |
-		1<<'~' // !#$&'*+-.^_`|~
+		1<<'~' // !#$%&'*+-.^_`|~
 )
 
 // isUpper returns true if c is a upper case ASCII chararacter.
@@ -34,7 +41,7 @@ func isIn(c byte, lo, hi uint64) bool {
 
 func isTokenChar(c byte) bool {
 	// token is the set of characters allowed in pre HTTP/3 names.
-	const token = lower | upper | digits | special
+	const token = alpha | digits | special
 
 	return c < 0x80 && isIn(c, token%(1<<64), token>>64)
 }
@@ -117,4 +124,18 @@ func AppendLower(p []byte, s string) []byte {
 		}
 	}
 	return p
+}
+
+func ToCanonical(b []byte) string {
+	nextA := 'a'
+	for i, c := range b {
+		if c-byte(nextA) < 26 {
+			b[i] = c ^ 0x20
+		}
+		nextA = 'A'
+		if c == '-' {
+			nextA = 'a'
+		}
+	}
+	return string(b)
 }
