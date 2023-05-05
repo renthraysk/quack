@@ -19,8 +19,6 @@ func New(maxCapacity uint64) DT {
 	}
 }
 
-func (dt *DT) maxEntries() uint64 { return dt.capacity / 32 }
-
 func (dt *DT) lookup(name, value string) (uint64, match) {
 	i := len(dt.headers) - 1
 	for i >= 0 && dt.headers[i].Name != name {
@@ -84,6 +82,8 @@ func (dt *DT) insert(name, value string) (int, bool) {
 	dt.size += s
 	return i, true
 }
+
+func (dt *DT) maxEntries() uint64 { return dt.capacity / 32 }
 
 // https://www.rfc-editor.org/rfc/rfc9204.html#name-encoded-field-section-prefi
 func (dt *DT) appendFieldSectionPrefix(p []byte, reqInsertCount uint64) []byte {
