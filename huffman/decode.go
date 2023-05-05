@@ -4,7 +4,8 @@ package huffman
 // result. Will return an error if the input is incorrectly padded, or if the
 // EOS code has been encoded.
 func Decode(dst, in []byte) ([]byte, error) {
-	// The maximum code length is 30.
+	// The maximum code length is 30. Loading 32 or more bits at time, ensures
+	// have atleast one code to decode.
 	var x uint64
 	var n uint
 
