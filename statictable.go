@@ -3,122 +3,123 @@ package quack
 const intern = "" +
 	"script-src 'none'; object-src 'none'; base-uri 'none'max-age=315" +
 	"36000; includesubdomains; preloadapplication/x-www-form-urlencod" +
-	"edaccess-control-allow-credentialsaccess-control-request-headers" +
-	"access-control-expose-headersaccess-control-request-methodaccess" +
-	"-control-allow-headersaccess-control-allow-methodsaccess-control" +
-	"-allow-originstrict-transport-securityupgrade-insecure-requestsp" +
+	"edAccess-Control-Allow-CredentialsAccess-Control-Request-Headers" +
+	"Access-Control-Expose-HeadersAccess-Control-Request-MethodAccess" +
+	"-Control-Allow-HeadersAccess-Control-Allow-MethodsAccess-Control" +
+	"-Allow-OriginStrict-Transport-SecurityUpgrade-Insecure-Requestsp" +
 	"ublic, max-age=31536000text/html; charset=utf-8text/plain;charse" +
-	"t=utf-8application/dns-messagecontent-security-policyapplication" +
-	"/javascriptx-content-type-optionscontent-dispositiontiming-allow" +
-	"-originget, post, optionsif-modified-sincegzip, deflate, brx-xss" +
-	"-protectioncontent-encodingapplication/jsonx-frame-optionsmax-ag" +
-	"e=2592000x-forwarded-foraccept-languageaccept-encodingcontent-le" +
-	"ngthmax-age=604800cache-controllast-modifiedaccept-rangesif-none" +
-	"-matchauthorization1; mode=blockimage/jpegearly-datasameoriginse" +
-	"t-cookie:authorityuser-agentmax-age=0expect-ctimage/gifimage/png" +
-	"if-rangeprefetchno-cachelocationno-storetext/cssbytes=0-:status:" +
-	"methodOPTIONSpurpose:schemealt-svcreferernosniffCONNECTDELETEser" +
-	"verFALSEclear:pathhttpsTRUEHEADdenydateetagvaryPOSTlink302404100" +
-	"204206500400503421GET*/*103PUT403304425"
+	"t=utf-8application/dns-messageContent-Security-Policyapplication" +
+	"/javascriptX-Content-Type-OptionsContent-DispositionTiming-Allow" +
+	"-Originget, post, optionsIf-Modified-Sincegzip, deflate, brX-Xss" +
+	"-ProtectionContent-Encodingapplication/jsonX-Frame-Optionsmax-ag" +
+	"e=2592000X-Forwarded-ForAccept-Languageaccept-encodingAccept-Enc" +
+	"odingcontent-lengthmax-age=604800Content-LengthCache-ControlLast" +
+	"-ModifiedAccept-RangesIf-None-Matchcache-controlAuthorization1; " +
+	"mode=blockcontent-typeimage/jpegEarly-DatasameoriginSet-Cookie:a" +
+	"uthorityUser-Agentmax-age=0Expect-Ctimage/gifimage/pngIf-Rangepr" +
+	"efetchno-cacheLocationno-storetext/cssbytes=0-:status:methodOPTI" +
+	"ONSPurpose:schemeAlt-SvcReferernosniffCONNECTDELETEServerFALSEcl" +
+	"ear:pathhttpsTRUEHEADdenyDateEtagVaryPOSTLink3024041002042065004" +
+	"00503421GET*/*103PUT403304425"
 
 var staticTable = [...]headerField{
-	{Name: intern[904:914]},                             // 0 :authority
-	{Name: intern[1101:1106], Value: intern[108:109]},   // 1 :path: /
-	{Name: intern[57:60], Value: intern[66:67]},         // 2 age: 0
-	{Name: intern[545:564]},                             // 3 content-disposition
-	{Name: intern[758:772], Value: intern[66:67]},       // 4 content-length: 0
-	{Name: intern[898:904]},                             // 5 cookie
-	{Name: intern[1123:1127]},                           // 6 date
-	{Name: intern[1127:1131]},                           // 7 etag
-	{Name: intern[601:618]},                             // 8 if-modified-since
-	{Name: intern[825:838]},                             // 9 if-none-match
-	{Name: intern[799:812]},                             // 10 last-modified
-	{Name: intern[1139:1143]},                           // 11 link
-	{Name: intern[984:992]},                             // 12 location
-	{Name: intern[1058:1065]},                           // 13 referer
-	{Name: intern[894:904]},                             // 14 set-cookie
-	{Name: intern[1023:1030], Value: intern[1072:1079]}, // 15 :method: CONNECT
-	{Name: intern[1023:1030], Value: intern[1079:1085]}, // 16 :method: DELETE
-	{Name: intern[1023:1030], Value: intern[1170:1173]}, // 17 :method: GET
-	{Name: intern[1023:1030], Value: intern[1115:1119]}, // 18 :method: HEAD
-	{Name: intern[1023:1030], Value: intern[1030:1037]}, // 19 :method: OPTIONS
-	{Name: intern[1023:1030], Value: intern[1135:1139]}, // 20 :method: POST
-	{Name: intern[1023:1030], Value: intern[1179:1182]}, // 21 :method: PUT
-	{Name: intern[1044:1051], Value: intern[1106:1110]}, // 22 :scheme: http
-	{Name: intern[1044:1051], Value: intern[1106:1111]}, // 23 :scheme: https
-	{Name: intern[1016:1023], Value: intern[1176:1179]}, // 24 :status: 103
-	{Name: intern[1016:1023], Value: intern[709:712]},   // 25 :status: 200
-	{Name: intern[1016:1023], Value: intern[1185:1188]}, // 26 :status: 304
-	{Name: intern[1016:1023], Value: intern[1146:1149]}, // 27 :status: 404
-	{Name: intern[1016:1023], Value: intern[1164:1167]}, // 28 :status: 503
-	{Name: intern[728:734], Value: intern[1173:1176]},   // 29 accept: */*
-	{Name: intern[728:734], Value: intern[455:478]},     // 30 accept: application/dns-message
-	{Name: intern[743:758], Value: intern[618:635]},     // 31 accept-encoding: gzip, deflate, br
-	{Name: intern[812:825], Value: intern[1008:1013]},   // 32 accept-ranges: bytes
-	{Name: intern[250:278], Value: intern[786:799]},     // 33 access-control-allow-headers: cache-control
-	{Name: intern[250:278], Value: intern[525:537]},     // 34 access-control-allow-headers: content-type
-	{Name: intern[306:333], Value: intern[1173:1174]},   // 35 access-control-allow-origin: *
-	{Name: intern[786:799], Value: intern[924:933]},     // 36 cache-control: max-age=0
-	{Name: intern[786:799], Value: intern[698:713]},     // 37 cache-control: max-age=2592000
-	{Name: intern[786:799], Value: intern[772:786]},     // 38 cache-control: max-age=604800
-	{Name: intern[786:799], Value: intern[976:984]},     // 39 cache-control: no-cache
-	{Name: intern[786:799], Value: intern[992:1000]},    // 40 cache-control: no-store
-	{Name: intern[786:799], Value: intern[383:407]},     // 41 cache-control: public, max-age=31536000
-	{Name: intern[651:667], Value: intern[633:635]},     // 42 content-encoding: br
-	{Name: intern[651:667], Value: intern[618:622]},     // 43 content-encoding: gzip
-	{Name: intern[525:537], Value: intern[455:478]},     // 44 content-type: application/dns-message
-	{Name: intern[525:537], Value: intern[501:523]},     // 45 content-type: application/javascript
-	{Name: intern[525:537], Value: intern[667:683]},     // 46 content-type: application/json
-	{Name: intern[525:537], Value: intern[97:130]},      // 47 content-type: application/x-www-form-urlencoded
-	{Name: intern[525:537], Value: intern[942:951]},     // 48 content-type: image/gif
-	{Name: intern[525:537], Value: intern[864:874]},     // 49 content-type: image/jpeg
-	{Name: intern[525:537], Value: intern[951:960]},     // 50 content-type: image/png
-	{Name: intern[525:537], Value: intern[1000:1008]},   // 51 content-type: text/css
-	{Name: intern[525:537], Value: intern[407:431]},     // 52 content-type: text/html; charset=utf-8
-	{Name: intern[525:537], Value: intern[431:441]},     // 53 content-type: text/plain
-	{Name: intern[525:537], Value: intern[431:455]},     // 54 content-type: text/plain;charset=utf-8
-	{Name: intern[819:824], Value: intern[1008:1016]},   // 55 range: bytes=0-
-	{Name: intern[333:358], Value: intern[53:69]},       // 56 strict-transport-security: max-age=31536000
-	{Name: intern[333:358], Value: intern[53:88]},       // 57 strict-transport-security: max-age=31536000; includesubdomains
-	{Name: intern[333:358], Value: intern[53:97]},       // 58 strict-transport-security: max-age=31536000; includesubdomains; preload
-	{Name: intern[1131:1135], Value: intern[743:758]},   // 59 vary: accept-encoding
-	{Name: intern[1131:1135], Value: intern[327:333]},   // 60 vary: origin
-	{Name: intern[523:545], Value: intern[1065:1072]},   // 61 x-content-type-options: nosniff
-	{Name: intern[635:651], Value: intern[851:864]},     // 62 x-xss-protection: 1; mode=block
-	{Name: intern[1016:1023], Value: intern[1149:1152]}, // 63 :status: 100
-	{Name: intern[1016:1023], Value: intern[1152:1155]}, // 64 :status: 204
-	{Name: intern[1016:1023], Value: intern[1155:1158]}, // 65 :status: 206
-	{Name: intern[1016:1023], Value: intern[1143:1146]}, // 66 :status: 302
-	{Name: intern[1016:1023], Value: intern[1161:1164]}, // 67 :status: 400
-	{Name: intern[1016:1023], Value: intern[1182:1185]}, // 68 :status: 403
-	{Name: intern[1016:1023], Value: intern[1167:1170]}, // 69 :status: 421
-	{Name: intern[1016:1023], Value: intern[1188:1191]}, // 70 :status: 425
-	{Name: intern[1016:1023], Value: intern[1158:1161]}, // 71 :status: 500
-	{Name: intern[728:743]},                             // 72 accept-language
-	{Name: intern[130:162], Value: intern[1091:1096]},   // 73 access-control-allow-credentials: FALSE
-	{Name: intern[130:162], Value: intern[1111:1115]},   // 74 access-control-allow-credentials: TRUE
-	{Name: intern[250:278], Value: intern[1173:1174]},   // 75 access-control-allow-headers: *
-	{Name: intern[278:306], Value: intern[583:586]},     // 76 access-control-allow-methods: get
-	{Name: intern[278:306], Value: intern[583:601]},     // 77 access-control-allow-methods: get, post, options
-	{Name: intern[278:306], Value: intern[538:545]},     // 78 access-control-allow-methods: options
-	{Name: intern[192:221], Value: intern[758:772]},     // 79 access-control-expose-headers: content-length
-	{Name: intern[162:192], Value: intern[525:537]},     // 80 access-control-request-headers: content-type
-	{Name: intern[221:250], Value: intern[583:586]},     // 81 access-control-request-method: get
-	{Name: intern[221:250], Value: intern[588:592]},     // 82 access-control-request-method: post
-	{Name: intern[1051:1058], Value: intern[1096:1101]}, // 83 alt-svc: clear
-	{Name: intern[838:851]},                             // 84 authorization
-	{Name: intern[478:501], Value: intern[0:53]},        // 85 content-security-policy: script-src 'none'; object-src 'none'; base-uri 'none'
-	{Name: intern[874:884], Value: intern[62:63]},       // 86 early-data: 1
-	{Name: intern[933:942]},                             // 87 expect-ct
-	{Name: intern[715:724]},                             // 88 forwarded
-	{Name: intern[960:968]},                             // 89 if-range
-	{Name: intern[327:333]},                             // 90 origin
-	{Name: intern[1037:1044], Value: intern[968:976]},   // 91 purpose: prefetch
-	{Name: intern[1085:1091]},                           // 92 server
-	{Name: intern[564:583], Value: intern[1173:1174]},   // 93 timing-allow-origin: *
-	{Name: intern[358:383], Value: intern[62:63]},       // 94 upgrade-insecure-requests: 1
-	{Name: intern[914:924]},                             // 95 user-agent
-	{Name: intern[713:728]},                             // 96 x-forwarded-for
-	{Name: intern[683:698], Value: intern[1119:1123]},   // 97 x-frame-options: deny
-	{Name: intern[683:698], Value: intern[884:894]},     // 98 x-frame-options: sameorigin
+	{Name: intern[958:968]},                             // 0 :authority
+	{Name: intern[1155:1160], Value: intern[108:109]},   // 1 :path: /
+	{Name: intern[973:976], Value: intern[66:67]},       // 2 Age: 0
+	{Name: intern[545:564]},                             // 3 Content-Disposition
+	{Name: intern[801:815], Value: intern[66:67]},       // 4 Content-Length: 0
+	{Name: intern[952:958]},                             // 5 Cookie
+	{Name: intern[1177:1181]},                           // 6 Date
+	{Name: intern[1181:1185]},                           // 7 Etag
+	{Name: intern[601:618]},                             // 8 If-Modified-Since
+	{Name: intern[854:867]},                             // 9 If-None-Match
+	{Name: intern[828:841]},                             // 10 Last-Modified
+	{Name: intern[1193:1197]},                           // 11 Link
+	{Name: intern[1038:1046]},                           // 12 Location
+	{Name: intern[1112:1119]},                           // 13 Referer
+	{Name: intern[948:958]},                             // 14 Set-Cookie
+	{Name: intern[1077:1084], Value: intern[1126:1133]}, // 15 :method: CONNECT
+	{Name: intern[1077:1084], Value: intern[1133:1139]}, // 16 :method: DELETE
+	{Name: intern[1077:1084], Value: intern[1224:1227]}, // 17 :method: GET
+	{Name: intern[1077:1084], Value: intern[1169:1173]}, // 18 :method: HEAD
+	{Name: intern[1077:1084], Value: intern[1084:1091]}, // 19 :method: OPTIONS
+	{Name: intern[1077:1084], Value: intern[1189:1193]}, // 20 :method: POST
+	{Name: intern[1077:1084], Value: intern[1233:1236]}, // 21 :method: PUT
+	{Name: intern[1098:1105], Value: intern[1160:1164]}, // 22 :scheme: http
+	{Name: intern[1098:1105], Value: intern[1160:1165]}, // 23 :scheme: https
+	{Name: intern[1070:1077], Value: intern[1230:1233]}, // 24 :status: 103
+	{Name: intern[1070:1077], Value: intern[709:712]},   // 25 :status: 200
+	{Name: intern[1070:1077], Value: intern[1239:1242]}, // 26 :status: 304
+	{Name: intern[1070:1077], Value: intern[1200:1203]}, // 27 :status: 404
+	{Name: intern[1070:1077], Value: intern[1218:1221]}, // 28 :status: 503
+	{Name: intern[728:734], Value: intern[1227:1230]},   // 29 Accept: */*
+	{Name: intern[728:734], Value: intern[455:478]},     // 30 Accept: application/dns-message
+	{Name: intern[758:773], Value: intern[618:635]},     // 31 Accept-Encoding: gzip, deflate, br
+	{Name: intern[841:854], Value: intern[1062:1067]},   // 32 Accept-Ranges: bytes
+	{Name: intern[250:278], Value: intern[867:880]},     // 33 Access-Control-Allow-Headers: cache-control
+	{Name: intern[250:278], Value: intern[906:918]},     // 34 Access-Control-Allow-Headers: content-type
+	{Name: intern[306:333], Value: intern[1227:1228]},   // 35 Access-Control-Allow-Origin: *
+	{Name: intern[815:828], Value: intern[978:987]},     // 36 Cache-Control: max-age=0
+	{Name: intern[815:828], Value: intern[698:713]},     // 37 Cache-Control: max-age=2592000
+	{Name: intern[815:828], Value: intern[787:801]},     // 38 Cache-Control: max-age=604800
+	{Name: intern[815:828], Value: intern[1030:1038]},   // 39 Cache-Control: no-cache
+	{Name: intern[815:828], Value: intern[1046:1054]},   // 40 Cache-Control: no-store
+	{Name: intern[815:828], Value: intern[383:407]},     // 41 Cache-Control: public, max-age=31536000
+	{Name: intern[651:667], Value: intern[633:635]},     // 42 Content-Encoding: br
+	{Name: intern[651:667], Value: intern[618:622]},     // 43 Content-Encoding: gzip
+	{Name: intern[525:537], Value: intern[455:478]},     // 44 Content-Type: application/dns-message
+	{Name: intern[525:537], Value: intern[501:523]},     // 45 Content-Type: application/javascript
+	{Name: intern[525:537], Value: intern[667:683]},     // 46 Content-Type: application/json
+	{Name: intern[525:537], Value: intern[97:130]},      // 47 Content-Type: application/x-www-form-urlencoded
+	{Name: intern[525:537], Value: intern[996:1005]},    // 48 Content-Type: image/gif
+	{Name: intern[525:537], Value: intern[918:928]},     // 49 Content-Type: image/jpeg
+	{Name: intern[525:537], Value: intern[1005:1014]},   // 50 Content-Type: image/png
+	{Name: intern[525:537], Value: intern[1054:1062]},   // 51 Content-Type: text/css
+	{Name: intern[525:537], Value: intern[407:431]},     // 52 Content-Type: text/html; charset=utf-8
+	{Name: intern[525:537], Value: intern[431:441]},     // 53 Content-Type: text/plain
+	{Name: intern[525:537], Value: intern[431:455]},     // 54 Content-Type: text/plain;charset=utf-8
+	{Name: intern[848:853], Value: intern[1062:1070]},   // 55 Range: bytes=0-
+	{Name: intern[333:358], Value: intern[53:69]},       // 56 Strict-Transport-Security: max-age=31536000
+	{Name: intern[333:358], Value: intern[53:88]},       // 57 Strict-Transport-Security: max-age=31536000; includesubdomains
+	{Name: intern[333:358], Value: intern[53:97]},       // 58 Strict-Transport-Security: max-age=31536000; includesubdomains; preload
+	{Name: intern[1185:1189], Value: intern[743:758]},   // 59 Vary: accept-encoding
+	{Name: intern[1185:1189], Value: intern[942:948]},   // 60 Vary: origin
+	{Name: intern[523:545], Value: intern[1119:1126]},   // 61 X-Content-Type-Options: nosniff
+	{Name: intern[635:651], Value: intern[893:906]},     // 62 X-Xss-Protection: 1; mode=block
+	{Name: intern[1070:1077], Value: intern[1203:1206]}, // 63 :status: 100
+	{Name: intern[1070:1077], Value: intern[1206:1209]}, // 64 :status: 204
+	{Name: intern[1070:1077], Value: intern[1209:1212]}, // 65 :status: 206
+	{Name: intern[1070:1077], Value: intern[1197:1200]}, // 66 :status: 302
+	{Name: intern[1070:1077], Value: intern[1215:1218]}, // 67 :status: 400
+	{Name: intern[1070:1077], Value: intern[1236:1239]}, // 68 :status: 403
+	{Name: intern[1070:1077], Value: intern[1221:1224]}, // 69 :status: 421
+	{Name: intern[1070:1077], Value: intern[1242:1245]}, // 70 :status: 425
+	{Name: intern[1070:1077], Value: intern[1212:1215]}, // 71 :status: 500
+	{Name: intern[728:743]},                             // 72 Accept-Language
+	{Name: intern[130:162], Value: intern[1145:1150]},   // 73 Access-Control-Allow-Credentials: FALSE
+	{Name: intern[130:162], Value: intern[1165:1169]},   // 74 Access-Control-Allow-Credentials: TRUE
+	{Name: intern[250:278], Value: intern[1227:1228]},   // 75 Access-Control-Allow-Headers: *
+	{Name: intern[278:306], Value: intern[583:586]},     // 76 Access-Control-Allow-Methods: get
+	{Name: intern[278:306], Value: intern[583:601]},     // 77 Access-Control-Allow-Methods: get, post, options
+	{Name: intern[278:306], Value: intern[594:601]},     // 78 Access-Control-Allow-Methods: options
+	{Name: intern[192:221], Value: intern[773:787]},     // 79 Access-Control-Expose-Headers: content-length
+	{Name: intern[162:192], Value: intern[906:918]},     // 80 Access-Control-Request-Headers: content-type
+	{Name: intern[221:250], Value: intern[583:586]},     // 81 Access-Control-Request-Method: get
+	{Name: intern[221:250], Value: intern[588:592]},     // 82 Access-Control-Request-Method: post
+	{Name: intern[1105:1112], Value: intern[1150:1155]}, // 83 Alt-Svc: clear
+	{Name: intern[880:893]},                             // 84 Authorization
+	{Name: intern[478:501], Value: intern[0:53]},        // 85 Content-Security-Policy: script-src 'none'; object-src 'none'; base-uri 'none'
+	{Name: intern[928:938], Value: intern[62:63]},       // 86 Early-Data: 1
+	{Name: intern[987:996]},                             // 87 Expect-Ct
+	{Name: intern[715:724]},                             // 88 Forwarded
+	{Name: intern[1014:1022]},                           // 89 If-Range
+	{Name: intern[327:333]},                             // 90 Origin
+	{Name: intern[1091:1098], Value: intern[1022:1030]}, // 91 Purpose: prefetch
+	{Name: intern[1139:1145]},                           // 92 Server
+	{Name: intern[564:583], Value: intern[1227:1228]},   // 93 Timing-Allow-Origin: *
+	{Name: intern[358:383], Value: intern[62:63]},       // 94 Upgrade-Insecure-Requests: 1
+	{Name: intern[968:978]},                             // 95 User-Agent
+	{Name: intern[713:728]},                             // 96 X-Forwarded-For
+	{Name: intern[683:698], Value: intern[1173:1177]},   // 97 X-Frame-Options: deny
+	{Name: intern[683:698], Value: intern[938:948]},     // 98 X-Frame-Options: sameorigin
 }

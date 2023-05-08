@@ -7,14 +7,14 @@ import (
 
 type DT struct {
 	headers  []headerField
-	base     uint64
+	base     uint64 // evicted count
 	capacity uint64
 	size     uint64
-	evicted  uint64
 }
 
 func New(maxCapacity uint64) DT {
 	return DT{
+		headers:  make([]headerField, 0, maxCapacity/32),
 		capacity: maxCapacity,
 	}
 }
@@ -28,21 +28,22 @@ func (dt *DT) lookup(name, value string) (uint64, match) {
 		return 0, matchNone
 	}
 	if dt.headers[i].Value == value {
-		return uint64(i), matchNameValue
+		return uint64(i) + dt.base, matchNameValue
 	}
 	j := i - 1
 	for j >= 0 && dt.headers[j].Name != name || dt.headers[j].Value != value {
 		j--
 	}
 	if j < 0 {
-		return uint64(i), matchName
+		return uint64(i) + dt.base, matchName
 	}
-	return uint64(j), matchNameValue
+	return uint64(j) + dt.base, matchNameValue
 }
 
-// evict evicts headerFields until size is less than targetSize, returns the
-// number of headerFields evicted.
-func (dt *DT) evict(targetSize uint64) (uint64, bool) {
+// evict attempts to evict headerFields until size is less than or equal to
+// targetSize. Returns true if was able to ensure the dynamic table size
+// is or below targetSize, false otherwise.
+func (dt *DT) evict(targetSize uint64) bool {
 	var i int
 
 	size := dt.size
@@ -51,36 +52,32 @@ func (dt *DT) evict(targetSize uint64) (uint64, bool) {
 		i++
 	}
 	if i == 0 {
-		return 0, true
+		return true
 	}
 	if i >= len(dt.headers) {
-		return 0, false
+		return false
 	}
-	n := uint64(i)
-	if ec, c := bits.Add64(dt.evicted, n, 0); c != 0 {
-		return 0, false
-	} else {
-		dt.evicted = ec
+	b, c := bits.Add64(dt.base, uint64(i), 0)
+	if c != 0 {
+		return false
 	}
-	dt.headers = append(dt.headers[:0], dt.headers[n:]...)
+	dt.base = b
 	dt.size = size
-	return n, true
+	dt.headers = append(dt.headers[:0], dt.headers[i:]...)
+	return true
 }
 
-func (dt *DT) insert(name, value string) (int, bool) {
+func (dt *DT) insert(name, value string) bool {
 	s := size(name, value)
-	if s > dt.capacity-dt.size {
-		if s > dt.capacity {
-			return 0, false
-		}
-		if _, ok := dt.evict(dt.capacity - s); !ok {
-			return 0, false
-		}
+	if s > dt.capacity {
+		return false
 	}
-	i := len(dt.headers)
-	dt.headers = append(dt.headers, headerField{name, value})
+	if ok := dt.evict(dt.capacity - s); !ok {
+		return false
+	}
 	dt.size += s
-	return i, true
+	dt.headers = append(dt.headers, headerField{name, value})
+	return true
 }
 
 func (dt *DT) maxEntries() uint64 { return dt.capacity / 32 }

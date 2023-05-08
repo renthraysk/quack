@@ -17,154 +17,232 @@ const (
 	matchNameValue
 )
 
-// control controls finer details of how a specific headers should be encoded.
-type control uint8
-
-const (
-	// neverIndex header field should never be put in the dynamic table.
-	neverIndex control = 1 << iota
-	// neverHuffman never compress the value field.
-	neverHuffman
-)
-
-func (c control) shouldHuffman() bool { return c&neverHuffman == 0 }
-
-// neverIndex returns the value of yes if the header should not be indexed, 0
-// otherwise.
-func (c control) neverIndex(yes byte) byte {
-	if c&neverIndex != 0 {
-		return yes
-	}
-	return 0
-}
-
 type Encoder struct {
 	dt DT
 }
 
-func NewEncoder() *Encoder {
-	return &Encoder{}
+func NewEncoder(capacity uint64) *Encoder {
+	return &Encoder{dt: DT{capacity: capacity}}
 }
 
-func (e *Encoder) appendHeader(p []byte, header map[string][]string) []byte {
-	var lowerBuf [len("access-control-allow-credentials")]byte
+func (e *Encoder) Parse(p []byte) error {
+	var streamID, increment uint64
+	var err error
+
+	for len(p) > 0 {
+		switch p[0] & 0b1100_0000 {
+		case 0b0000_0000:
+			// insert count increment
+			increment, p, err = readVarint(p, 0b0011_1111)
+			if err != nil {
+				return err
+			}
+			_ = increment
+			// @TODO
+
+		case 0b0100_0000:
+			// stream cancellation
+			streamID, p, err = readVarint(p, 0b0011_1111)
+			if err != nil {
+				return err
+			}
+			_ = streamID
+			// @TODO
+
+		case 0b1000_0000, 0b1100_0000:
+			// section acknowledgement
+			streamID, p, err = readVarint(p, 0b0111_1111)
+			if err != nil {
+				return err
+			}
+			_ = streamID
+			// @TODO
+		}
+	}
+	return nil
+}
+
+func (e *Encoder) appendEncoderInstructions(q []byte, header map[string][]string) ([]byte, uint64) {
+
+	var reqInsertCount uint64 // @TODO
 
 	for name, values := range header {
-		// @TODO combine validation & AppendLower
-		//		if !ascii.IsNameValid(name) {
-		//			continue
-		//		}
-		lower := string(ascii.AppendLower(lowerBuf[:0], name))
-
 		for _, value := range values {
-			//			if ascii.IsValueValid(value) {
-			p = e.appendField(p, lower, value)
-			//			}
+			si, sm := staticLookup(name, value)
+			if sm == matchNameValue {
+				continue
+			}
+			di, dm := e.dt.lookup(name, value)
+			if dm == matchNameValue {
+				continue
+			}
+			ctrl := e.headerControl(name)
+			if ctrl.neverIndex() {
+				// If already have a name match, no point attempting an insert
+				// if prevented from inserting a (name, value) pair.
+				if sm == matchName || dm == matchName {
+					continue
+				}
+				// sm == matchNone && dm == matchNone
+				value = ""
+			}
+			if ok := e.dt.insert(name, value); !ok {
+				continue
+			}
+			// successful insertion into dynamic table, so need an encoder
+			// instruction to inform peer
+			switch {
+			case sm == matchName:
+				q = appendInsertWithNameReference(q, si, true)
+
+			case dm == matchName:
+				q = appendInsertWithNameReference(q, di, false)
+
+			default:
+				q = appendInsertWithLiteralName(q, name)
+			}
+			q = appendStringLiteral(q, value, ctrl.shouldHuffman())
+		}
+	}
+	return q, reqInsertCount
+}
+
+func (e *Encoder) appendFieldLines(p []byte, header map[string][]string) []byte {
+	for name, values := range header {
+		for _, value := range values {
+			si, sm := staticLookup(name, value)
+			if sm == matchNameValue {
+				p = appendIndexedLine(p, si, true)
+				continue
+			}
+			di, dm := e.dt.lookup(name, value)
+			if dm == matchNameValue {
+				p = appendIndexedLinePostBase(p, di-e.dt.base)
+				continue
+			}
+			ctrl := e.headerControl(name)
+			switch {
+			case sm == matchName:
+				p = appendNamedReference(p, si, ctrl.neverIndex(), true)
+			case dm == matchName:
+				p = appendNamedReference(p, di, ctrl.neverIndex(), false)
+			default:
+				p = appendLiteralName(p, name, ctrl.neverIndex())
+			}
+			p = appendStringLiteral(p, value, ctrl.shouldHuffman())
 		}
 	}
 	return p
 }
 
-func (e *Encoder) headerControl(name string) control {
-	switch name {
-	case "authorization", "content-md5":
-		return neverIndex | neverHuffman
-	case "date",
-		"etag",
-		"if-modified-since",
-		"if-unmodified-since",
-		"last-modified",
-		"location",
-		"match",
-		"range",
-		"retry-after",
-		"set-cookie":
-		return neverIndex
-	}
-	return 0
+// Encoder Instructions
+// https://www.rfc-editor.org/rfc/rfc9204.html#name-encoder-instructions
+
+// https://www.rfc-editor.org/rfc/rfc9204.html#name-set-dynamic-table-capacity
+func appendSetDynamicTableCapacity(p []byte, capacity uint64) []byte {
+	const (
+		P = 0b0010_0000
+		M = 0b0001_1111
+	)
+	return appendVarint(p, capacity, M, P)
 }
 
-func (e *Encoder) appendField(p []byte, name, value string) []byte {
+// https://www.rfc-editor.org/rfc/rfc9204.html#name-insert-with-name-reference
+func appendInsertWithNameReference(p []byte, i uint64, isStatic bool) []byte {
 	const (
-		// https://www.rfc-editor.org/rfc/rfc9204.html#name-literal-field-line-with-nam
+		P = 0b1000_0000
+		T = 0b0100_0000
+		M = 0b0011_1111
+	)
+	return appendVarint(p, i, M, P|t(isStatic, T))
+}
 
-		// P '01' 2-bit Pattern of literal field line with name reference
+// https://www.rfc-editor.org/rfc/rfc9204.html#name-insert-with-literal-name
+func appendInsertWithLiteralName(p []byte, name string) []byte {
+	const (
 		P = 0b0100_0000
-		// N Never index bit of literal field line with name reference
-		N = 0b0010_0000
-		// T Static table bit of literal field line with name reference
-		T = 0b0001_0000
-		// M Mask of literal field line with name reference
-		M = 0b0000_1111
+		H = 0b0010_0000
+		M = 0b0001_1111
 	)
 
-	i, m := staticLookup(name, value)
-	if m == matchNameValue {
-		// https://www.rfc-editor.org/rfc/rfc9204.html#name-indexed-field-line
-		return appendVarint(p, i, 0b0011_1111, 0b1100_0000)
+	n := uint64(len(name))
+	if h := huffman.EncodeLengthLower(name); h < n {
+		p = appendVarint(p, h, M, P|H)
+		return huffman.AppendStringLower(p, name)
 	}
-
-	ctrl := e.headerControl(name)
-	if false /* @TODO */ {
-		switch di, dm := e.dt.lookup(name, value); dm {
-		case matchNameValue:
-			// https://www.rfc-editor.org/rfc/rfc9204.html#name-indexed-field-line
-			indexBits, prefix := byte(0b0011_1111), byte(0b1000_0000)
-			if false {
-				// https://www.rfc-editor.org/rfc/rfc9204.html#name-indexed-field-line-with-pos
-				indexBits, prefix = 0b0000_1111, 0b0001_0000
-			}
-			return appendVarint(p, di, indexBits, prefix)
-		case matchName:
-			// Prefer static table name matches over dynamic table name matches.
-			if m == matchNone {
-				p = appendVarint(p, di, M, P|ctrl.neverIndex(N))
-				return appendStringLiteral(p, value, ctrl)
-			}
-		}
-	}
-	switch m {
-	case matchName:
-		p = appendVarint(p, i, M, P|ctrl.neverIndex(N)|T)
-	case matchNone:
-		p = appendLiteralName(p, name, ctrl)
-	}
-	return appendStringLiteral(p, value, ctrl)
+	p = appendVarint(p, n, M, P)
+	return ascii.AppendLower(p, name)
 }
 
-func appendLiteralName(p []byte, name string, ctrl control) []byte {
+// https://www.rfc-editor.org/rfc/rfc9204.html#name-duplicate
+func appendDuplicate(p []byte, i uint64) []byte {
 	const (
-		// https://www.rfc-editor.org/rfc/rfc9204.html#name-literal-field-line-with-lit
-		// '001' 3 bit pattern
+		P = 0b0000_0000
+		M = 0b0001_1111
+	)
+	return appendVarint(p, i, M, P)
+}
+
+// Field Line Representations
+// https://www.rfc-editor.org/rfc/rfc9204.html#name-field-line-representations
+
+// https://www.rfc-editor.org/rfc/rfc9204.html#name-indexed-field-line
+func appendIndexedLine(p []byte, i uint64, isStatic bool) []byte {
+	const (
+		P = 0b1000_0000
+		T = 0b0100_0000
+		M = 0b0011_1111
+	)
+	return appendVarint(p, i, M, P|t(isStatic, T))
+}
+
+// https://www.rfc-editor.org/rfc/rfc9204.html#name-indexed-field-line-with-pos
+func appendIndexedLinePostBase(p []byte, i uint64) []byte {
+	const P = 0b0001_0000
+	const M = 0b0000_1111
+
+	return appendVarint(p, i, M, P)
+}
+
+// https://www.rfc-editor.org/rfc/rfc9204.html#name-literal-field-line-with-nam
+func appendNamedReference(p []byte, i uint64, neverIndex bool, isStatic bool) []byte {
+	const (
+		P = 0b0100_0000
+		N = 0b0010_0000
+		T = 0b0001_0000
+		M = 0b0000_1111
+	)
+	return appendVarint(p, i, M, P|t(neverIndex, N)|t(isStatic, T))
+}
+
+// https://www.rfc-editor.org/rfc/rfc9204.html#name-literal-field-line-with-lit
+func appendLiteralName(p []byte, name string, neverIndex bool) []byte {
+	const (
 		P = 0b0010_0000
-		// Never index bit
 		N = 0b0001_0000
-		// Huffman encoded bit
 		H = 0b0000_1000
-		// Mask
 		M = 0b0000_0111
 	)
 	n := uint64(len(name))
 	if h := huffman.EncodeLengthLower(name); h < n {
-		p = appendVarint(p, h, M, P|ctrl.neverIndex(N)|H)
+		p = appendVarint(p, h, M, P|t(neverIndex, N)|H)
 		return huffman.AppendStringLower(p, name)
 	}
-	p = appendVarint(p, n, M, P|ctrl.neverIndex(N))
+	p = appendVarint(p, n, M, P|t(neverIndex, N))
 	return ascii.AppendLower(p, name)
 }
 
+//
+
 // appendStringLiteral appends the QPACK encoded string literal s to p.
-func appendStringLiteral(p []byte, s string, ctrl control) []byte {
+func appendStringLiteral(p []byte, s string, shouldHuffman bool) []byte {
 	const (
-		// layout of the first byte of the length of a string literal
-		// H Huffman encoded
 		H = 0b1000_0000
-		// M Mask
 		M = 0b0111_1111
 	)
 
 	n := uint64(len(s))
-	if n > 2 && ctrl.shouldHuffman() {
+	if n > 2 && shouldHuffman {
 		if h := huffman.EncodeLength(s); h < n {
 			p = appendVarint(p, h, M, H)
 			return huffman.AppendString(p, s)
@@ -172,4 +250,11 @@ func appendStringLiteral(p []byte, s string, ctrl control) []byte {
 	}
 	p = appendVarint(p, n, M, 0)
 	return append(p, s...)
+}
+
+func t(b bool, t byte) byte {
+	if b {
+		return t
+	}
+	return 0
 }

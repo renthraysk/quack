@@ -26,7 +26,8 @@ func (e *Encoder) NewRequest(p []byte, method, scheme, authority, path string, h
 		}
 	}
 
-	var reqInsertCount uint64
+	q, reqInsertCount := e.appendEncoderInstructions(nil, header)
+	_ = q
 
 	p = e.dt.appendFieldSectionPrefix(p, reqInsertCount)
 	// All pseudo-header fields MUST appear in the header section before regular header fields.
@@ -35,20 +36,21 @@ func (e *Encoder) NewRequest(p []byte, method, scheme, authority, path string, h
 	p = appendScheme(p, scheme)
 	p = appendAuthority(p, authority)
 	p = appendPath(p, path)
-	p = e.appendHeader(p, header)
+	p = e.appendFieldLines(p, header)
 	return p, nil
 }
 
 // https://www.rfc-editor.org/rfc/rfc9114.html#name-the-connect-method
 func (e *Encoder) NewConnect(p []byte, authority string, header map[string][]string) ([]byte, error) {
 
-	var reqInsertCount uint64
+	q, reqInsertCount := e.appendEncoderInstructions(nil, header)
+	_ = q
 
 	p = e.dt.appendFieldSectionPrefix(p, reqInsertCount)
 	// All pseudo-header fields MUST appear in the header section before regular header fields.
 	// https://www.rfc-editor.org/rfc/rfc9114.html#name-http-control-data
 	p = appendMethod(p, "CONNECT")
 	p = appendAuthority(p, authority)
-	p = e.appendHeader(p, header)
+	p = e.appendFieldLines(p, header)
 	return p, nil
 }

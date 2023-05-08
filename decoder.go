@@ -19,6 +19,10 @@ type Decoder struct {
 	dt DT
 }
 
+func NewDecoder(maxCapacity uint64) *Decoder {
+	return &Decoder{dt: DT{capacity: maxCapacity}}
+}
+
 // Decode decodes the header fields in p.
 func (d *Decoder) Decode(p []byte, accept func(string, string)) error {
 	_, p, err := readVarint(p, 0xFF)
@@ -197,7 +201,7 @@ func readLiteralName(p, decodeBuf []byte) (string, []byte, error) {
 	if !ascii.IsNameValid(b) {
 		return "", p, errNameInvalid
 	}
-	return string(b), q[n:], nil // Allocation
+	return ascii.ToCanonical(b), q[n:], nil // Allocation
 }
 
 // readStringLiteral reads a string literal from p. Will use decodeBuf if the
