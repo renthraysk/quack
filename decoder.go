@@ -175,15 +175,15 @@ func (d *Decoder) Decode(p []byte, accept func(string, string)) error {
 func readLiteralName(p, decodeBuf []byte) (string, []byte, error) {
 	const (
 		// layout of the first byte of a literal name length
-		Prefix         = 0b0010_0000
-		NeverIndex     = 0b0001_0000
-		HuffmanEncoded = 0b0000_1000
-		NameLenBits    = 0b0000_0111
+		P = 0b0010_0000
+		N = 0b0001_0000
+		H = 0b0000_1000
+		M = 0b0000_0111
 	)
 	if len(p) <= 0 {
 		return "", p, errUnexpectedEnd
 	}
-	n, q, err := readVarint(p, NameLenBits)
+	n, q, err := readVarint(p, M)
 	if err != nil {
 		return "", p, err
 	}
@@ -191,7 +191,7 @@ func readLiteralName(p, decodeBuf []byte) (string, []byte, error) {
 		return "", p, errUnexpectedEnd
 	}
 	b := q[:n:n]
-	if p[0]&HuffmanEncoded == HuffmanEncoded {
+	if p[0]&H == H {
 		b, err = huffman.Decode(decodeBuf[:0], b)
 		if err != nil {
 			return "", p, err
@@ -209,14 +209,17 @@ func readLiteralName(p, decodeBuf []byte) (string, []byte, error) {
 func readStringLiteral(p, decodeBuf []byte) (string, []byte, error) {
 	const (
 		// layout of the first byte of a string literal length
-		HuffmanEncoded = 0b1000_0000
-		StringLenBits  = 0b0111_1111
+		H = 0b1000_0000
+		M = 0b0111_1111
 	)
+	return readLiteral(p, decodeBuf, M, H)
+}
 
+func readLiteral(p, decodeBuf []byte, m, h uint8) (string, []byte, error) {
 	if len(p) <= 0 {
 		return "", p, errUnexpectedEnd
 	}
-	n, q, err := readVarint(p, StringLenBits)
+	n, q, err := readVarint(p, m)
 	if err != nil {
 		return "", p, err
 	}
@@ -224,7 +227,7 @@ func readStringLiteral(p, decodeBuf []byte) (string, []byte, error) {
 		return "", p, errUnexpectedEnd
 	}
 	b := q[:n:n]
-	if p[0]&HuffmanEncoded == HuffmanEncoded {
+	if p[0]&h == h {
 		b, err = huffman.Decode(decodeBuf[:0], b)
 		if err != nil {
 			return "", p, err
@@ -235,4 +238,87 @@ func readStringLiteral(p, decodeBuf []byte) (string, []byte, error) {
 		return "", p, errValueInvalid
 	}
 	return string(b), q[n:], nil // Allocation
+}
+
+func (d *Decoder) ParseEncoderInstructions(p []byte) error {
+
+	var name string
+	var buf [256]byte
+
+	for len(p) > 0 {
+		switch p[0] >> 5 {
+		case 0b000:
+			// https://www.rfc-editor.org/rfc/rfc9204.html#name-duplicate
+		case 0b001:
+			// https://www.rfc-editor.org/rfc/rfc9204.html#name-set-dynamic-table-capacity
+			capacity, q, err := readVarint(p, 0b0001_1111)
+			if err != nil {
+				return err
+			}
+			if ok := d.dt.evict(capacity); !ok {
+			}
+			d.dt.capacity = capacity
+			p = q
+			continue
+
+		case 0b010, 0b011:
+			// https://www.rfc-editor.org/rfc/rfc9204.html#name-insert-with-literal-name
+			const H = 0b0010_0000
+			const M = 0b0001_1111
+
+		default:
+			// https://www.rfc-editor.org/rfc/rfc9204.html#name-insert-with-name-reference
+			const T = 0b0100_0000
+			const M = 0b0011_1111
+
+			i, q, err := readVarint(p, M)
+			if err != nil {
+				return err
+			}
+			switch p[0] & T {
+			case 0:
+				name = d.dt.headers[i].Name
+			case T:
+				name = staticTable[i].Name
+			}
+			p = q
+		}
+		value, q, err := readStringLiteral(p, buf[:0])
+		if err != nil {
+			return err
+		}
+		if ok := d.dt.insert(name, value); !ok {
+		}
+		p = q
+	}
+	return nil
+}
+
+// Decoder instructions
+
+// https://www.rfc-editor.org/rfc/rfc9204.html#name-section-acknowledgment
+func appendSectionAcknowledgement(q []byte, streamID uint64) []byte {
+	const (
+		P = 0b1000_0000
+		M = 0b0111_1111
+	)
+	return appendVarint(q, streamID, M, P)
+}
+
+// https://www.rfc-editor.org/rfc/rfc9204.html#name-stream-cancellation
+func appendStreamCancellation(q []byte, streamID uint64) []byte {
+	const (
+		P = 0b0100_0000
+		M = 0b0011_1111
+	)
+	return appendVarint(q, streamID, M, P)
+}
+
+// https://www.rfc-editor.org/rfc/rfc9204.html#name-insert-count-increment
+func appendInsetCountIncrement(q []byte, increment uint64) []byte {
+	const (
+		P = 0b0000_0000
+		M = 0b0011_1111
+	)
+	return appendVarint(q, increment, M, P)
 }
