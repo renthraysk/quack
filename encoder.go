@@ -62,7 +62,10 @@ func (e *Encoder) Parse(p []byte) error {
 	return nil
 }
 
-func (e *Encoder) appendEncoderInstructions(q []byte, header map[string][]string) ([]byte, uint64) {
+// Encoder Instructions
+// https://www.rfc-editor.org/rfc/rfc9204.html#name-encoder-instructions
+
+func (e *Encoder) appendEncoderInstructions(p []byte, header map[string][]string) ([]byte, uint64) {
 
 	var reqInsertCount uint64 // @TODO
 
@@ -93,50 +96,19 @@ func (e *Encoder) appendEncoderInstructions(q []byte, header map[string][]string
 			// instruction to inform peer
 			switch {
 			case sm == matchName:
-				q = appendInsertWithNameReference(q, si, true)
+				p = appendInsertWithNameReference(p, si, true)
 
 			case dm == matchName:
-				q = appendInsertWithNameReference(q, di, false)
+				p = appendInsertWithNameReference(p, di, false)
 
 			default:
-				q = appendInsertWithLiteralName(q, name)
-			}
-			q = appendStringLiteral(q, value, ctrl.shouldHuffman())
-		}
-	}
-	return q, reqInsertCount
-}
-
-func (e *Encoder) appendFieldLines(p []byte, header map[string][]string) []byte {
-	for name, values := range header {
-		for _, value := range values {
-			si, sm := staticLookup(name, value)
-			if sm == matchNameValue {
-				p = appendIndexedLine(p, si, true)
-				continue
-			}
-			di, dm := e.dt.lookup(name, value)
-			if dm == matchNameValue {
-				p = appendIndexedLinePostBase(p, di-e.dt.base)
-				continue
-			}
-			ctrl := e.headerControl(name)
-			switch {
-			case sm == matchName:
-				p = appendNamedReference(p, si, ctrl.neverIndex(), true)
-			case dm == matchName:
-				p = appendNamedReference(p, di, ctrl.neverIndex(), false)
-			default:
-				p = appendLiteralName(p, name, ctrl.neverIndex())
+				p = appendInsertWithLiteralName(p, name)
 			}
 			p = appendStringLiteral(p, value, ctrl.shouldHuffman())
 		}
 	}
-	return p
+	return p, reqInsertCount
 }
-
-// Encoder Instructions
-// https://www.rfc-editor.org/rfc/rfc9204.html#name-encoder-instructions
 
 // https://www.rfc-editor.org/rfc/rfc9204.html#name-set-dynamic-table-capacity
 func appendSetDynamicTableCapacity(p []byte, capacity uint64) []byte {
@@ -185,6 +157,34 @@ func appendDuplicate(p []byte, i uint64) []byte {
 
 // Field Line Representations
 // https://www.rfc-editor.org/rfc/rfc9204.html#name-field-line-representations
+
+func (e *Encoder) appendFieldLines(p []byte, header map[string][]string) []byte {
+	for name, values := range header {
+		for _, value := range values {
+			si, sm := staticLookup(name, value)
+			if sm == matchNameValue {
+				p = appendIndexedLine(p, si, true)
+				continue
+			}
+			di, dm := e.dt.lookup(name, value)
+			if dm == matchNameValue {
+				p = appendIndexedLinePostBase(p, di-e.dt.base)
+				continue
+			}
+			ctrl := e.headerControl(name)
+			switch {
+			case sm == matchName:
+				p = appendNamedReference(p, si, ctrl.neverIndex(), true)
+			case dm == matchName:
+				p = appendNamedReference(p, di, ctrl.neverIndex(), false)
+			default:
+				p = appendLiteralName(p, name, ctrl.neverIndex())
+			}
+			p = appendStringLiteral(p, value, ctrl.shouldHuffman())
+		}
+	}
+	return p
+}
 
 // https://www.rfc-editor.org/rfc/rfc9204.html#name-indexed-field-line
 func appendIndexedLine(p []byte, i uint64, isStatic bool) []byte {
