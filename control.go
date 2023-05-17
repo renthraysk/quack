@@ -13,7 +13,7 @@ const (
 func (c control) shouldHuffman() bool { return c&neverHuffman == 0 }
 func (c control) neverIndex() bool    { return c&neverIndex != 0 }
 
-func (e *Encoder) headerControl(name string) control {
+func headerControl(name string) control {
 	switch name {
 	case "Authorization", "Content-Md5":
 		return neverIndex | neverHuffman
