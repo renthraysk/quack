@@ -128,9 +128,11 @@ func appendScheme(p []byte, scheme string) []byte {
 
 // appendDate appends a Date header field with time t.
 func appendDate(p []byte, t time.Time) []byte {
+	const StaticTableIndex = 6
+
 	const H = 0b1000_0000
 
-	p = appendNamedReference(p, 6, false, true)
+	p = appendNamedReference(p, StaticTableIndex, false, true)
 	// RFC1123 time length is less 0x7F so only need a single byte for length
 	i := len(p)
 	p = append(p, 0)
