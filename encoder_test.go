@@ -1,6 +1,7 @@
 package quack
 
 import (
+	"fmt"
 	"testing"
 )
 
@@ -19,6 +20,22 @@ func TestEncoder(t *testing.T) {
 	if err != nil {
 		t.Errorf("NewRequest failed: %v", err)
 	}
+}
+
+func TestParser(t *testing.T) {
+
+	in := DT{}
+	in.setCapacityLocked(1 << 10)
+	in.insertLocked("Server", "proto")
+	in.insertLocked("Server", "proto")
+	in.insertLocked("Server", "proto2")
+
+	p := in.appendSnapshot(nil)
+
+	out := &DT{}
+	out.parseEncoderInstructions(p)
+
+	fmt.Printf("%+v\n", out)
 }
 
 func BenchmarkEncoder(b *testing.B) {

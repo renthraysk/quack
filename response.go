@@ -5,10 +5,8 @@ import "time"
 // https://www.rfc-editor.org/rfc/rfc9114.html#name-response-pseudo-header-fiel
 func (e *Encoder) NewResponse(p []byte, statusCode int, header map[string][]string) ([]byte, error) {
 
-	q, reqInsertCount := e.appendEncoderInstructions(nil, header)
-	_ = q
-
-	p = e.dt.appendFieldSectionPrefix(p, reqInsertCount)
+	fe := e.current.Load()
+	p = fe.appendFieldSectionPrefix(p)
 	// All pseudo-header fields MUST appear in the header section before regular header fields.
 	// https://www.rfc-editor.org/rfc/rfc9114.html#name-http-control-data
 	p = appendStatus(p, statusCode)
@@ -16,6 +14,6 @@ func (e *Encoder) NewResponse(p []byte, statusCode int, header map[string][]stri
 	if _, ok := header["Date"]; !ok {
 		p = appendDate(p, time.Now())
 	}
-	p = e.appendFieldLines(p, header)
+	p = fe.appendFieldLines(p, header)
 	return p, nil
 }

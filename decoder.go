@@ -25,29 +25,27 @@ func NewDecoder(maxCapacity uint64) *Decoder {
 
 // Decode decodes the header fields in p.
 func (d *Decoder) Decode(p []byte, accept func(string, string)) error {
-	_, p, err := readVarint(p, 0xFF)
+
+	q, reqInsertCount, base, err := d.dt.readFieldSectionPrefix(p)
 	if err != nil {
 		return err
 	}
-	_, p, err = readVarint(p, 0x7F)
-	if err != nil {
-		return err
-	}
+	_, _ = reqInsertCount, base
 
 	buf := make([]byte, 0, 256) // Huffman decode scratch buffer
 
-	for len(p) > 0 {
-		switch (p[0] >> 4) & 0b1111 { // & 0b1111 should be unnecessary
+	for len(q) > 0 {
+		switch (q[0] >> 4) & 0b1111 { // & 0b1111 should be unnecessary
 		case 0b0000:
 			//  0000_NXXX Literal Field Line with Post-Base Name Reference
 			// 	https://www.rfc-editor.org/rfc/rfc9204.html#name-literal-field-line-with-pos
 			const NeverIndex = 0b0000_1000
 
-			index, q, err := readVarint(p, 0b0000_0111)
+			index, r, err := readVarint(q, 0b0000_0111)
 			if err != nil {
 				return err
 			}
-			value, q, err := readStringLiteral(q, buf)
+			value, r, err := readStringLiteral(r, buf)
 			if err != nil {
 				return err
 			}
@@ -55,16 +53,13 @@ func (d *Decoder) Decode(p []byte, accept func(string, string)) error {
 			if err != nil {
 				return err
 			}
-			if p[0]&NeverIndex != NeverIndex {
-				// Index
-			}
-			p = q
+			q = r
 			accept(name, value)
 
 		case 0b0001:
 			// 0001_XXXX Indexed Field Line with Post-Base Index
 			// https://www.rfc-editor.org/rfc/rfc9204.html#name-indexed-field-line-with-pos
-			index, q, err := readVarint(p, 0b0000_1111)
+			index, r, err := readVarint(q, 0b0000_1111)
 			if err != nil {
 				return err
 			}
@@ -72,34 +67,29 @@ func (d *Decoder) Decode(p []byte, accept func(string, string)) error {
 			if err != nil {
 				return err
 			}
-			p = q
+			q = r
 			accept(name, value)
 
 		case 0b0010, 0b0011:
 			// 001N_HXXX Literal Field Line with Literal Name
 			// https://www.rfc-editor.org/rfc/rfc9204.html#name-literal-field-line-with-lit
-			const NeverIndex = 0b0001_0000
 
-			name, q, err := readLiteralName(p, buf)
+			name, r, err := readLiteralName(q, buf)
 			if err != nil {
 				return err
 			}
-			value, q, err := readStringLiteral(q, buf)
+			value, r, err := readStringLiteral(r, buf)
 			if err != nil {
 				return err
 			}
-			if p[0]&NeverIndex != NeverIndex {
-				// Index
-			}
-			p = q
+			q = r
 			accept(name, value)
 
 		case 0b0100, 0b0110:
 			// 01N0_XXXX: Literal Field Line with Name Reference in dynamic table
 			// https://www.rfc-editor.org/rfc/rfc9204.html#name-literal-field-line-with-nam
-			const NeverIndex = 0b0010_0000
 
-			index, q, err := readVarint(p, 0b0000_1111)
+			index, r, err := readVarint(q, 0b0000_1111)
 			if err != nil {
 				return err
 			}
@@ -107,42 +97,35 @@ func (d *Decoder) Decode(p []byte, accept func(string, string)) error {
 			if err != nil {
 				return err
 			}
-			value, q, err := readStringLiteral(q, buf)
+			value, r, err := readStringLiteral(r, buf)
 			if err != nil {
 				return err
 			}
-			if p[0]&NeverIndex != NeverIndex {
-				// Index
-			}
-			p = q
+			q = r
 			accept(name, value)
 
 		case 0b0101, 0b0111:
 			// 01N1_XXXX: Literal Field Line with Name Reference in static table
 			// https://www.rfc-editor.org/rfc/rfc9204.html#name-literal-field-line-with-nam
-			const NeverIndex = 0b0010_0000
 
-			index, q, err := readVarint(p, 0b0000_1111)
+			index, r, err := readVarint(q, 0b0000_1111)
 			if err != nil {
 				return err
 			}
 			if index >= uint64(len(staticTable)) {
 				return errStaticIndexOutOfRange
 			}
-			value, q, err := readStringLiteral(q, buf)
+			value, r, err := readStringLiteral(r, buf)
 			if err != nil {
 				return err
 			}
-			if p[0]&NeverIndex != NeverIndex {
-				// Index
-			}
-			p = q
+			q = r
 			accept(staticTable[index].Name, value)
 
 		case 0b1000, 0b1001, 0b1010, 0b1011:
 			// 10XX_XXXX Indexed Field Line in dynamic table
 			// https://www.rfc-editor.org/rfc/rfc9204.html#name-indexed-field-line
-			index, q, err := readVarint(p, 0b0011_1111)
+			index, r, err := readVarint(q, 0b0011_1111)
 			if err != nil {
 				return err
 			}
@@ -150,20 +133,20 @@ func (d *Decoder) Decode(p []byte, accept func(string, string)) error {
 			if err != nil {
 				return err
 			}
-			p = q
+			q = r
 			accept(name, value)
 
 		case 0b1100, 0b1101, 0b1110, 0b1111:
 			// 11XX_XXXX Indexed Field Line in static table
 			// https://www.rfc-editor.org/rfc/rfc9204.html#name-indexed-field-line
-			index, q, err := readVarint(p, 0b0011_1111)
+			index, r, err := readVarint(q, 0b0011_1111)
 			if err != nil {
 				return err
 			}
 			if index >= uint64(len(staticTable)) {
 				return errStaticIndexOutOfRange
 			}
-			p = q
+			q = r
 			accept(staticTable[index].Name, staticTable[index].Value)
 		}
 	}
@@ -240,58 +223,8 @@ func readLiteral(p, decodeBuf []byte, m, h uint8) (string, []byte, error) {
 	return string(b), q[n:], nil // Allocation
 }
 
-func (d *Decoder) ParseEncoderInstructions(p []byte) error {
-
-	var name string
-	var buf [256]byte
-
-	for len(p) > 0 {
-		switch p[0] >> 5 {
-		case 0b000:
-			// https://www.rfc-editor.org/rfc/rfc9204.html#name-duplicate
-		case 0b001:
-			// https://www.rfc-editor.org/rfc/rfc9204.html#name-set-dynamic-table-capacity
-			capacity, q, err := readVarint(p, 0b0001_1111)
-			if err != nil {
-				return err
-			}
-			if ok := d.dt.evict(capacity); !ok {
-			}
-			d.dt.capacity = capacity
-			p = q
-			continue
-
-		case 0b010, 0b011:
-			// https://www.rfc-editor.org/rfc/rfc9204.html#name-insert-with-literal-name
-			const H = 0b0010_0000
-			const M = 0b0001_1111
-
-		default:
-			// https://www.rfc-editor.org/rfc/rfc9204.html#name-insert-with-name-reference
-			const T = 0b0100_0000
-			const M = 0b0011_1111
-
-			i, q, err := readVarint(p, M)
-			if err != nil {
-				return err
-			}
-			switch p[0] & T {
-			case 0:
-				name = d.dt.headers[i].Name
-			case T:
-				name = staticTable[i].Name
-			}
-			p = q
-		}
-		value, q, err := readStringLiteral(p, buf[:0])
-		if err != nil {
-			return err
-		}
-		if ok := d.dt.insert(name, value); !ok {
-		}
-		p = q
-	}
-	return nil
+func (d *Decoder) ParseEncoderInstructions(in []byte) error {
+	return d.dt.parseEncoderInstructions(in)
 }
 
 // Decoder instructions

@@ -3,13 +3,24 @@ package quack
 import (
 	"errors"
 	"math/bits"
+	"sync"
+	"sync/atomic"
 )
 
 type DT struct {
+	mu       sync.Mutex
 	headers  []headerField
-	base     uint64 // evicted count
+	base     uint64
 	capacity uint64
 	size     uint64
+
+	// current is the encoder that encodes in manner understood by the peer's
+	// decoder
+	current *fieldEncoder
+
+	// next is the encoder to switch to when the peer acks insertions into
+	// it's own dynamic table
+	next *fieldEncoder
 }
 
 func New(maxCapacity uint64) DT {
@@ -19,31 +30,23 @@ func New(maxCapacity uint64) DT {
 	}
 }
 
-func (dt *DT) lookup(name, value string) (uint64, match) {
-	i := len(dt.headers) - 1
-	for i >= 0 && dt.headers[i].Name != name {
-		i--
+func (dt *DT) setCapacityLocked(capacity uint64) bool {
+	if dt.evictLocked(capacity) {
+		dt.capacity = capacity
+		return true
 	}
-	if i < 0 || i >= len(dt.headers) {
-		return 0, matchNone
-	}
-	if dt.headers[i].Value == value {
-		return uint64(i) + dt.base, matchNameValue
-	}
-	j := i - 1
-	for j >= 0 && dt.headers[j].Name != name || dt.headers[j].Value != value {
-		j--
-	}
-	if j < 0 {
-		return uint64(i) + dt.base, matchName
-	}
-	return uint64(j) + dt.base, matchNameValue
+	return false
 }
 
-// evict attempts to evict headerFields until size is less than or equal to
+func (dt *DT) changeEncoder(p *atomic.Pointer[fieldEncoder], knownReceivedCount uint64) error {
+	p.Store(dt.next)
+	return nil
+}
+
+// evictLocked attempts to evict headerFields until size is less than or equal to
 // targetSize. Returns true if was able to ensure the dynamic table size
 // is or below targetSize, false otherwise.
-func (dt *DT) evict(targetSize uint64) bool {
+func (dt *DT) evictLocked(targetSize uint64) bool {
 	var i int
 
 	size := dt.size
@@ -61,18 +64,20 @@ func (dt *DT) evict(targetSize uint64) bool {
 	if c != 0 {
 		return false
 	}
+	// Successful eviction, modify state.
 	dt.base = b
 	dt.size = size
 	dt.headers = append(dt.headers[:0], dt.headers[i:]...)
 	return true
 }
 
-func (dt *DT) insert(name, value string) bool {
+func (dt *DT) insertLocked(name, value string) bool {
 	s := size(name, value)
+
 	if s > dt.capacity {
 		return false
 	}
-	if ok := dt.evict(dt.capacity - s); !ok {
+	if ok := dt.evictLocked(dt.capacity - s); !ok {
 		return false
 	}
 	dt.size += s
@@ -80,26 +85,80 @@ func (dt *DT) insert(name, value string) bool {
 	return true
 }
 
-func (dt *DT) maxEntries() uint64 { return dt.capacity / 32 }
+// https://datatracker.ietf.org/doc/html/rfc9204#name-encoded-field-section-prefi
+func (dt *DT) readFieldSectionPrefix(p []byte) ([]byte, uint64, uint64, error) {
+	var reqInsertCount uint64
 
-// https://www.rfc-editor.org/rfc/rfc9204.html#name-encoded-field-section-prefi
-func (dt *DT) appendFieldSectionPrefix(p []byte, reqInsertCount uint64) []byte {
-	var insertCount uint64
-
-	// https://www.rfc-editor.org/rfc/rfc9204.html#name-required-insert-count
-	if reqInsertCount > 0 {
-		insertCount = (reqInsertCount % (2 * dt.maxEntries())) + 1
+	encodedInsertCount, q, err := readVarint(p, 0xFF)
+	if err != nil {
+		return p, 0, 0, err
 	}
-	p = appendVarint(p, insertCount, 0xFF, 0)
 
-	// https://www.rfc-editor.org/rfc/rfc9204.html#name-base
-	var sign byte
-	base := dt.base - reqInsertCount
-	if dt.base < reqInsertCount {
-		base = reqInsertCount - dt.base - 1
-		sign = 0b1000_0000
+	const (
+		SIGN = 0b1000_0000
+		M    = 0b0111_1111
+	)
+
+	deltaBase, r, err := readVarint(q, M)
+	if err != nil {
+		return p, 0, 0, err
 	}
-	return appendVarint(p, base, 0b0111_1111, sign)
+
+	// https://datatracker.ietf.org/doc/html/rfc9204#name-required-insert-count
+	if encodedInsertCount != 0 {
+		fullRange := 2 * (dt.capacity / 32)
+		if encodedInsertCount > fullRange {
+			return p, 0, 0, errors.New("")
+		}
+		maxValue := /* @TODO */ uint64(len(dt.headers)) + (dt.capacity / 32)
+		maxWrapped := (maxValue / fullRange) * fullRange
+		reqInsertCount = maxWrapped + encodedInsertCount - 1
+		if reqInsertCount > maxValue {
+			if reqInsertCount <= fullRange {
+				return p, 0, 0, errors.New("")
+			}
+			reqInsertCount -= fullRange
+		}
+		if reqInsertCount == 0 {
+			return p, 0, 0, errors.New("")
+		}
+	}
+
+	// https://datatracker.ietf.org/doc/html/rfc9204#name-base
+	base := reqInsertCount + deltaBase
+	if q[0]&SIGN != 0 {
+		base = reqInsertCount - deltaBase - 1
+	}
+	return r, reqInsertCount, base, nil
+}
+
+// appendSnapshot will append encoder instructions to recreate the current state
+// of the dynamic table
+func (dt *DT) appendSnapshot(p []byte) []byte {
+
+	dt.mu.Lock()
+	headers := dt.headers
+	p = appendSetDynamicTableCapacity(p, dt.capacity)
+	dt.mu.Unlock()
+
+	n := make(map[string]uint64, len(headers))
+	m := make(map[headerField]uint64, len(headers))
+
+	for i, hf := range headers {
+		if j, ok := m[hf]; ok {
+			p = appendDuplicate(p, j)
+			continue
+		}
+		m[hf] = uint64(i)
+		if j, ok := n[hf.Name]; ok {
+			p = appendInsertWithNameReference(p, j, false)
+		} else {
+			n[hf.Name] = uint64(i)
+			p = appendInsertWithLiteralName(p, hf.Name)
+		}
+		p = appendStringLiteral(p, hf.Value, true)
+	}
+	return p
 }
 
 func (dt *DT) nameIndex(index uint64) (string, error) {
