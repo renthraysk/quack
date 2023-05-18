@@ -5,6 +5,7 @@ import (
 
 	"github.com/renthraysk/quack/ascii"
 	"github.com/renthraysk/quack/huffman"
+	"github.com/renthraysk/quack/varint"
 )
 
 var (
@@ -41,7 +42,7 @@ func (d *Decoder) Decode(p []byte, accept func(string, string)) error {
 			// 	https://www.rfc-editor.org/rfc/rfc9204.html#name-literal-field-line-with-pos
 			const NeverIndex = 0b0000_1000
 
-			index, r, err := readVarint(q, 0b0000_0111)
+			index, r, err := varint.Read(q, 0b0000_0111)
 			if err != nil {
 				return err
 			}
@@ -59,7 +60,7 @@ func (d *Decoder) Decode(p []byte, accept func(string, string)) error {
 		case 0b0001:
 			// 0001_XXXX Indexed Field Line with Post-Base Index
 			// https://www.rfc-editor.org/rfc/rfc9204.html#name-indexed-field-line-with-pos
-			index, r, err := readVarint(q, 0b0000_1111)
+			index, r, err := varint.Read(q, 0b0000_1111)
 			if err != nil {
 				return err
 			}
@@ -89,7 +90,7 @@ func (d *Decoder) Decode(p []byte, accept func(string, string)) error {
 			// 01N0_XXXX: Literal Field Line with Name Reference in dynamic table
 			// https://www.rfc-editor.org/rfc/rfc9204.html#name-literal-field-line-with-nam
 
-			index, r, err := readVarint(q, 0b0000_1111)
+			index, r, err := varint.Read(q, 0b0000_1111)
 			if err != nil {
 				return err
 			}
@@ -108,7 +109,7 @@ func (d *Decoder) Decode(p []byte, accept func(string, string)) error {
 			// 01N1_XXXX: Literal Field Line with Name Reference in static table
 			// https://www.rfc-editor.org/rfc/rfc9204.html#name-literal-field-line-with-nam
 
-			index, r, err := readVarint(q, 0b0000_1111)
+			index, r, err := varint.Read(q, 0b0000_1111)
 			if err != nil {
 				return err
 			}
@@ -125,7 +126,7 @@ func (d *Decoder) Decode(p []byte, accept func(string, string)) error {
 		case 0b1000, 0b1001, 0b1010, 0b1011:
 			// 10XX_XXXX Indexed Field Line in dynamic table
 			// https://www.rfc-editor.org/rfc/rfc9204.html#name-indexed-field-line
-			index, r, err := readVarint(q, 0b0011_1111)
+			index, r, err := varint.Read(q, 0b0011_1111)
 			if err != nil {
 				return err
 			}
@@ -139,7 +140,7 @@ func (d *Decoder) Decode(p []byte, accept func(string, string)) error {
 		case 0b1100, 0b1101, 0b1110, 0b1111:
 			// 11XX_XXXX Indexed Field Line in static table
 			// https://www.rfc-editor.org/rfc/rfc9204.html#name-indexed-field-line
-			index, r, err := readVarint(q, 0b0011_1111)
+			index, r, err := varint.Read(q, 0b0011_1111)
 			if err != nil {
 				return err
 			}
@@ -166,7 +167,7 @@ func readLiteralName(p, decodeBuf []byte) (string, []byte, error) {
 	if len(p) <= 0 {
 		return "", p, errUnexpectedEnd
 	}
-	n, q, err := readVarint(p, M)
+	n, q, err := varint.Read(p, M)
 	if err != nil {
 		return "", p, err
 	}
@@ -202,7 +203,7 @@ func readLiteral(p, decodeBuf []byte, m, h uint8) (string, []byte, error) {
 	if len(p) <= 0 {
 		return "", p, errUnexpectedEnd
 	}
-	n, q, err := readVarint(p, m)
+	n, q, err := varint.Read(p, m)
 	if err != nil {
 		return "", p, err
 	}
@@ -225,33 +226,4 @@ func readLiteral(p, decodeBuf []byte, m, h uint8) (string, []byte, error) {
 
 func (d *Decoder) ParseEncoderInstructions(in []byte) error {
 	return d.dt.parseEncoderInstructions(in)
-}
-
-// Decoder instructions
-
-// https://www.rfc-editor.org/rfc/rfc9204.html#name-section-acknowledgment
-func appendSectionAcknowledgement(q []byte, streamID uint64) []byte {
-	const (
-		P = 0b1000_0000
-		M = 0b0111_1111
-	)
-	return appendVarint(q, streamID, M, P)
-}
-
-// https://www.rfc-editor.org/rfc/rfc9204.html#name-stream-cancellation
-func appendStreamCancellation(q []byte, streamID uint64) []byte {
-	const (
-		P = 0b0100_0000
-		M = 0b0011_1111
-	)
-	return appendVarint(q, streamID, M, P)
-}
-
-// https://www.rfc-editor.org/rfc/rfc9204.html#name-insert-count-increment
-func appendInsetCountIncrement(q []byte, increment uint64) []byte {
-	const (
-		P = 0b0000_0000
-		M = 0b0011_1111
-	)
-	return appendVarint(q, increment, M, P)
 }

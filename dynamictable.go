@@ -5,6 +5,12 @@ import (
 	"math/bits"
 	"sync"
 	"sync/atomic"
+
+	"github.com/renthraysk/quack/ascii"
+	"github.com/renthraysk/quack/huffman"
+	"github.com/renthraysk/quack/internal/field"
+	"github.com/renthraysk/quack/internal/inst"
+	"github.com/renthraysk/quack/varint"
 )
 
 type DT struct {
@@ -16,11 +22,11 @@ type DT struct {
 
 	// current is the encoder that encodes in manner understood by the peer's
 	// decoder
-	current *fieldEncoder
+	current *field.Encoder
 
 	// next is the encoder to switch to when the peer acks insertions into
 	// it's own dynamic table
-	next *fieldEncoder
+	next *field.Encoder
 }
 
 func New(maxCapacity uint64) DT {
@@ -38,7 +44,7 @@ func (dt *DT) setCapacityLocked(capacity uint64) bool {
 	return false
 }
 
-func (dt *DT) changeEncoder(p *atomic.Pointer[fieldEncoder], knownReceivedCount uint64) error {
+func (dt *DT) changeEncoder(p *atomic.Pointer[field.Encoder], knownReceivedCount uint64) error {
 	p.Store(dt.next)
 	return nil
 }
@@ -89,7 +95,7 @@ func (dt *DT) insertLocked(name, value string) bool {
 func (dt *DT) readFieldSectionPrefix(p []byte) ([]byte, uint64, uint64, error) {
 	var reqInsertCount uint64
 
-	encodedInsertCount, q, err := readVarint(p, 0xFF)
+	encodedInsertCount, q, err := varint.Read(p, 0xFF)
 	if err != nil {
 		return p, 0, 0, err
 	}
@@ -99,7 +105,7 @@ func (dt *DT) readFieldSectionPrefix(p []byte) ([]byte, uint64, uint64, error) {
 		M    = 0b0111_1111
 	)
 
-	deltaBase, r, err := readVarint(q, M)
+	deltaBase, r, err := varint.Read(q, M)
 	if err != nil {
 		return p, 0, 0, err
 	}
@@ -138,7 +144,7 @@ func (dt *DT) appendSnapshot(p []byte) []byte {
 
 	dt.mu.Lock()
 	headers := dt.headers
-	p = appendSetDynamicTableCapacity(p, dt.capacity)
+	p = inst.AppendSetDynamicTableCapacity(p, dt.capacity)
 	dt.mu.Unlock()
 
 	n := make(map[string]uint64, len(headers))
@@ -146,19 +152,64 @@ func (dt *DT) appendSnapshot(p []byte) []byte {
 
 	for i, hf := range headers {
 		if j, ok := m[hf]; ok {
-			p = appendDuplicate(p, j)
+			p = inst.AppendDuplicate(p, j)
 			continue
 		}
 		m[hf] = uint64(i)
 		if j, ok := n[hf.Name]; ok {
-			p = appendInsertWithNameReference(p, j, false)
+			p = inst.AppendInsertWithNameReference(p, j, false)
 		} else {
 			n[hf.Name] = uint64(i)
-			p = appendInsertWithLiteralName(p, hf.Name)
+			p = inst.AppendInsertWithLiteralName(p, hf.Name)
 		}
-		p = appendStringLiteral(p, hf.Value, true)
+		p = inst.AppendStringLiteral(p, hf.Value, true)
 	}
 	return p
+}
+
+// https://www.rfc-editor.org/rfc/rfc9204.html#name-insert-with-literal-name
+func nameInsertWithLiteralName(p, buf []byte) (string, []byte, error) {
+	const H = 0b0010_0000
+	const M = 0b0001_1111
+
+	n, q, err := varint.Read(p, M)
+	if err != nil {
+		return "", p, err
+	}
+	if n > uint64(len(q)) {
+		return "", p, errors.New("")
+	}
+	b := q[:n]
+	if p[0]&H == H {
+		b, err = huffman.Decode(buf[:0], b)
+		if err != nil {
+			return "", p, err
+		}
+	}
+	if !ascii.IsName3Valid(b) {
+	}
+	return ascii.ToCanonical(b), q[n:], nil
+}
+
+// https://www.rfc-editor.org/rfc/rfc9204.html#name-insert-with-name-reference
+func (dt *DT) nameInsertWithNameReference(p []byte) (string, []byte, error) {
+	const T = 0b0100_0000
+	const M = 0b0011_1111
+
+	i, q, err := varint.Read(p, M)
+	if err != nil {
+		return "", p, err
+	}
+	if p[0]&T == T {
+		if i >= uint64(len(staticTable)) {
+			return "", p, errors.New("invalid static table index")
+		}
+		return staticTable[i].Name, q, nil
+	}
+	if i >= uint64(len(dt.headers)) {
+		return "", p, errors.New("invalid dynamic table index")
+	}
+	return dt.headers[i].Name, q, nil
 }
 
 func (dt *DT) nameIndex(index uint64) (string, error) {

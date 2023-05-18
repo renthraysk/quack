@@ -1,4 +1,4 @@
-package quack
+package varint
 
 import "errors"
 
@@ -7,11 +7,13 @@ const (
 	maxVarint62Len = (62 + 6) / 7
 )
 
+var errUnexpectedEnd = errors.New("unexpected end")
+
 // https://datatracker.ietf.org/doc/html/rfc9204#section-4.1.1
 
 var errVarintOverflow = errors.New("quack: varint overflow")
 
-func readVarint(p []byte, mask uint8) (uint64, []byte, error) {
+func Read(p []byte, mask uint8) (uint64, []byte, error) {
 	if len(p) <= 0 {
 		return 0, p, errUnexpectedEnd
 	}
@@ -44,7 +46,7 @@ func readVarint(p []byte, mask uint8) (uint64, []byte, error) {
 	return 0, p, errVarintOverflow
 }
 
-func appendVarint(p []byte, x uint64, mask, prefix byte) []byte {
+func Append(p []byte, x uint64, mask, prefix byte) []byte {
 	if x < uint64(mask) {
 		return append(p, prefix|byte(x))
 	}

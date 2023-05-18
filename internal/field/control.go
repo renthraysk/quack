@@ -1,4 +1,4 @@
-package quack
+package field
 
 // control controls finer details of how a specific headers should be encoded.
 type control uint8
@@ -10,10 +10,10 @@ const (
 	neverHuffman
 )
 
-func (c control) shouldHuffman() bool { return c&neverHuffman == 0 }
-func (c control) neverIndex() bool    { return c&neverIndex != 0 }
+func (c control) ShouldHuffman() bool { return c&neverHuffman == 0 }
+func (c control) NeverIndex() bool    { return c&neverIndex != 0 }
 
-func headerControl(name string) control {
+func HeaderControl(name string) control {
 	switch name {
 	case "Authorization", "Content-Md5":
 		return neverIndex | neverHuffman

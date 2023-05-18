@@ -1,4 +1,4 @@
-package quack
+package varint
 
 import (
 	"errors"
@@ -25,11 +25,11 @@ func TestReadVarint(t *testing.T) {
 		{"zero-7", []byte{0x00}, 0x7F, 0, nil},
 		{"one-1", []byte{0x01, 0x00}, 0x01, 1, nil},
 
-		{"maxint62-1", appendVarint(nil, maxVarint62, 1, 0), 1, maxVarint62, nil},
-		{"maxint62-7", appendVarint(nil, maxVarint62, 0x7F, 0), 0x7F, maxVarint62, nil},
+		{"maxint62-1", Append(nil, maxVarint62, 1, 0), 1, maxVarint62, nil},
+		{"maxint62-7", Append(nil, maxVarint62, 0x7F, 0), 0x7F, maxVarint62, nil},
 
-		{"overflow-1", appendVarint(nil, maxVarint62+1, 1, 0), 1, 0, errVarintOverflow},
-		{"overflow-7", appendVarint(nil, maxVarint62+1, 0x7F, 0), 0x7F, 0, errVarintOverflow},
+		{"overflow-1", Append(nil, maxVarint62+1, 1, 0), 1, 0, errVarintOverflow},
+		{"overflow-7", Append(nil, maxVarint62+1, 0x7F, 0), 0x7F, 0, errVarintOverflow},
 
 		{"overflow", bad[:9], 0x7F, 0, errUnexpectedEnd},
 		{"enoughbytes", bad[:10], 0x7F, 0, errVarintOverflow},
@@ -38,7 +38,7 @@ func TestReadVarint(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			x, r, err := readVarint(tt.in, tt.mask)
+			x, r, err := Read(tt.in, tt.mask)
 			if !errors.Is(err, tt.expectedErr) {
 				t.Errorf("unexpected error expected %v, got %v", tt.expectedErr, err)
 			}

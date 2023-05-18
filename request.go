@@ -1,6 +1,10 @@
 package quack
 
-import "errors"
+import (
+	"errors"
+
+	"github.com/renthraysk/quack/internal/field"
+)
 
 // https://www.rfc-editor.org/rfc/rfc9114.html#name-request-pseudo-header-field
 func (e *Encoder) NewRequest(p []byte, method, scheme, authority, path string, header map[string][]string) ([]byte, error) {
@@ -27,25 +31,25 @@ func (e *Encoder) NewRequest(p []byte, method, scheme, authority, path string, h
 	}
 
 	fe := e.current.Load()
-	p = fe.appendFieldSectionPrefix(p)
+	p = fe.AppendFieldSectionPrefix(p)
 	// All pseudo-header fields MUST appear in the header section before regular header fields.
 	// https://www.rfc-editor.org/rfc/rfc9114.html#name-http-control-data
-	p = appendMethod(p, method)
-	p = appendScheme(p, scheme)
-	p = appendAuthority(p, authority)
-	p = appendPath(p, path)
-	p = fe.appendFieldLines(p, header)
+	p = field.AppendMethod(p, method)
+	p = field.AppendScheme(p, scheme)
+	p = field.AppendAuthority(p, authority)
+	p = field.AppendPath(p, path)
+	p = fe.AppendFieldLines(p, header)
 	return p, nil
 }
 
 // https://www.rfc-editor.org/rfc/rfc9114.html#name-the-connect-method
 func (e *Encoder) NewConnect(p []byte, authority string, header map[string][]string) ([]byte, error) {
 	fe := e.current.Load()
-	p = fe.appendFieldSectionPrefix(p)
+	p = fe.AppendFieldSectionPrefix(p)
 	// All pseudo-header fields MUST appear in the header section before regular header fields.
 	// https://www.rfc-editor.org/rfc/rfc9114.html#name-http-control-data
-	p = appendMethod(p, "CONNECT")
-	p = appendAuthority(p, authority)
-	p = fe.appendFieldLines(p, header)
+	p = field.AppendMethod(p, "CONNECT")
+	p = field.AppendAuthority(p, authority)
+	p = fe.AppendFieldLines(p, header)
 	return p, nil
 }
