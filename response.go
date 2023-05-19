@@ -9,7 +9,7 @@ import (
 // https://www.rfc-editor.org/rfc/rfc9114.html#name-response-pseudo-header-fiel
 func (e *Encoder) NewResponse(p []byte, statusCode int, header map[string][]string) ([]byte, error) {
 
-	fe := e.current.Load()
+	fe := e.fieldEncoder.Load()
 	p = fe.AppendFieldSectionPrefix(p)
 	// All pseudo-header fields MUST appear in the header section before regular header fields.
 	// https://www.rfc-editor.org/rfc/rfc9114.html#name-http-control-data

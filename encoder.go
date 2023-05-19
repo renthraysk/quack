@@ -11,10 +11,11 @@ type Encoder struct {
 	// Dynamic table
 	dt DT
 
-	// current is the encoder state required to encode headers.
+	// fieldEncoder is the encoder state required to encode headers.
+	// It is immutable once created by the dynamic table.
 	// If nil then will only encode using the static table. Will be updated
 	// when receive the increment decoder instruction from peer.
-	current atomic.Pointer[field.Encoder]
+	fieldEncoder atomic.Pointer[field.Encoder]
 }
 
 func NewEncoder(capacity uint64) *Encoder {
