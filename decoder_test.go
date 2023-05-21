@@ -3,9 +3,11 @@ package quack
 import (
 	"encoding/hex"
 	"testing"
+
+	"github.com/renthraysk/quack/internal/field"
 )
 
-func headersEqual(a, b []headerField) bool {
+func headersEqual(a, b []field.Header) bool {
 	if len(a) != len(b) {
 		return false
 	}
@@ -26,14 +28,14 @@ const requestBin = "" +
 	"03ee697e8d48e62b1e0b1d7f5f2c7cfdf6800bbddf5f398b2d4b62bbf45a" +
 	"befb4005db"
 
-var requestQuack = []headerField{
-	{":method", "GET"},
-	{":scheme", "https"},
-	{":authority", "localhost"},
-	{":path", "/"},
-	{"Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8"},
-	{"Accept-Encoding", "gzip, deflate, br"},
-	{"Accept-Language", "en-GB,en;q=0.5"}}
+var requestQuack = []field.Header{
+	{Name: ":method", Value: "GET"},
+	{Name: ":scheme", Value: "https"},
+	{Name: ":authority", Value: "localhost"},
+	{Name: ":path", Value: "/"},
+	{Name: "Accept", Value: "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8"},
+	{Name: "Accept-Encoding", Value: "gzip, deflate, br"},
+	{Name: "Accept-Language", Value: "en-GB,en;q=0.5"}}
 
 func dehex(tb testing.TB, s string) []byte {
 	b, err := hex.DecodeString(s)
@@ -44,9 +46,9 @@ func dehex(tb testing.TB, s string) []byte {
 }
 
 func TestDecodeRequest(t *testing.T) {
-	got := make([]headerField, 0, 8)
+	got := make([]field.Header, 0, 8)
 	f := func(name, value string) {
-		got = append(got, headerField{name, value})
+		got = append(got, field.Header{Name: name, Value: value})
 	}
 	d := new(Decoder)
 	err := d.Decode(dehex(t, requestBin), f)
@@ -59,9 +61,9 @@ func TestDecodeRequest(t *testing.T) {
 }
 
 func BenchmarkDecoder(b *testing.B) {
-	headers := make([]headerField, 0, 16)
+	headers := make([]field.Header, 0, 16)
 	f := func(name, value string) {
-		headers = append(headers, headerField{name, value})
+		headers = append(headers, field.Header{Name: name, Value: value})
 	}
 
 	in := dehex(b, requestBin)

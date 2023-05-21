@@ -23,7 +23,7 @@ func AppendStreamCancellation(q []byte, streamID uint64) []byte {
 }
 
 // https://www.rfc-editor.org/rfc/rfc9204.html#name-insert-count-increment
-func AppendInsetCountIncrement(q []byte, increment uint64) []byte {
+func AppendInsertCountIncrement(q []byte, increment uint64) []byte {
 	const (
 		P = 0b0000_0000
 		M = 0b0011_1111

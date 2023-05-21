@@ -1,6 +1,7 @@
 package quack
 
 import (
+	"errors"
 	"sync/atomic"
 
 	"github.com/renthraysk/quack/internal/field"
@@ -9,7 +10,7 @@ import (
 
 type Encoder struct {
 	// Dynamic table
-	dt DT
+	dt field.DT
 
 	// fieldEncoder is the encoder state required to encode headers.
 	// It is immutable once created by the dynamic table.
@@ -18,10 +19,51 @@ type Encoder struct {
 	fieldEncoder atomic.Pointer[field.Encoder]
 }
 
-func NewEncoder(capacity uint64) *Encoder {
-	return &Encoder{
-		dt: DT{capacity: capacity},
+func NewEncoder() *Encoder {
+	return &Encoder{}
+}
+
+// https://www.rfc-editor.org/rfc/rfc9114.html#name-request-pseudo-header-field
+func (e *Encoder) AppendRequest(p []byte, method, scheme, authority, path string, header map[string][]string) ([]byte, error) {
+	if scheme == "http" || scheme == "https" {
+
+		// Clients that generate HTTP/3 requests directly SHOULD use the
+		// :authority pseudo-header field instead of the Host header field.
+		if authority == "" {
+			return p, errors.New("empty :authority")
+		}
+		delete(header, "Host")
+
+		// This pseudo-header field MUST NOT be empty for "http" or "https" URIs;
+		// "http" or "https" URIs that do not contain a path component MUST
+		// include a value of / (ASCII 0x2f).
+		if path == "" {
+			path = "/"
+			// An OPTIONS request that does not include a path component includes
+			// the value * (ASCII 0x2a) for the :path pseudo-header field
+			if method == "OPTIONS" {
+				path = "*"
+			}
+		}
 	}
+
+	fe := e.fieldEncoder.Load()
+	p = fe.AppendRequest(p, method, scheme, authority, path, header)
+	return p, nil
+}
+
+// https://www.rfc-editor.org/rfc/rfc9114.html#name-the-connect-method
+func (e *Encoder) AppendConnect(p []byte, authority string, header map[string][]string) ([]byte, error) {
+	fe := e.fieldEncoder.Load()
+	p = fe.AppendConnect(p, authority, header)
+	return p, nil
+}
+
+// https://www.rfc-editor.org/rfc/rfc9114.html#name-response-pseudo-header-fiel
+func (e *Encoder) AppendResponse(p []byte, statusCode int, header map[string][]string) ([]byte, error) {
+	fe := e.fieldEncoder.Load()
+	p = fe.AppendResponse(p, statusCode, header)
+	return p, nil
 }
 
 // https://www.rfc-editor.org/rfc/rfc9204.html#name-decoder-instructions
@@ -66,11 +108,4 @@ func (e *Encoder) streamInstruction(streamID uint64, f func(s *stream), remove b
 
 func (e *Encoder) increment(increment uint64) error {
 	return nil
-}
-
-func t(b bool, t byte) byte {
-	if b {
-		return t
-	}
-	return 0
 }

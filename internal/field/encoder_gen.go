@@ -13,8 +13,8 @@ import (
 
 // The pseudo headers
 
-// AppendAuthority appends an :authority pseudo header field to p
-func AppendAuthority(p []byte, authority string) []byte {
+// appendAuthority appends an :authority pseudo header field to p
+func appendAuthority(p []byte, authority string) []byte {
 	if authority == "" {
 		return inst.AppendIndexedLine(p, 0, true)
 	}
@@ -22,8 +22,8 @@ func AppendAuthority(p []byte, authority string) []byte {
 	return inst.AppendStringLiteral(p, authority, true)
 }
 
-// AppendPath appends a :path pseudo header field to p
-func AppendPath(p []byte, path string) []byte {
+// appendPath appends a :path pseudo header field to p
+func appendPath(p []byte, path string) []byte {
 	if path == "/" {
 		return inst.AppendIndexedLine(p, 1, true)
 	}
@@ -32,7 +32,7 @@ func AppendPath(p []byte, path string) []byte {
 }
 
 // appendStatus appends a :status pseudo header field to p
-func AppendStatus(p []byte, statusCode int) []byte {
+func appendStatus(p []byte, statusCode int) []byte {
 	switch statusCode {
 	case 100:
 		return inst.AppendIndexedLine(p, 63, true)
@@ -91,8 +91,8 @@ func appendInt(p []byte, i int64) []byte {
 	return p
 }
 
-// AppendMethod appends a :method pseudo header field to p
-func AppendMethod(p []byte, method string) []byte {
+// appendMethod appends a :method pseudo header field to p
+func appendMethod(p []byte, method string) []byte {
 	switch method {
 	case "CONNECT":
 		return inst.AppendIndexedLine(p, 15, true)
@@ -114,7 +114,7 @@ func AppendMethod(p []byte, method string) []byte {
 }
 
 // appendScheme appends a :scheme pseudo header field to p
-func AppendScheme(p []byte, scheme string) []byte {
+func appendScheme(p []byte, scheme string) []byte {
 	switch scheme {
 	case "http":
 		return inst.AppendIndexedLine(p, 22, true)
@@ -128,7 +128,7 @@ func AppendScheme(p []byte, scheme string) []byte {
 // Regular headers
 
 // appendDate appends a Date header field with time t.
-func AppendDate(p []byte, t time.Time) []byte {
+func appendDate(p []byte, t time.Time) []byte {
 	const StaticTableIndex = 6
 
 	const H = 0b1000_0000
@@ -142,308 +142,308 @@ func AppendDate(p []byte, t time.Time) []byte {
 	return p
 }
 
-func staticLookup(name, value string) (uint64, Match) {
+func staticLookup(name, value string) (index uint64, m match) {
 	switch name {
 	case "Accept":
 		switch value {
 		case "*/*":
-			return 29, MatchNameValue
+			return 29, matchNameValue
 		case "application/dns-message":
-			return 30, MatchNameValue
+			return 30, matchNameValue
 		}
-		return 29, MatchName
+		return 29, matchName
 	case "Accept-Encoding":
 		if value == "gzip, deflate, br" {
-			return 31, MatchNameValue
+			return 31, matchNameValue
 		}
-		return 31, MatchName
+		return 31, matchName
 	case "Accept-Language":
 		if value == "" {
-			return 72, MatchNameValue
+			return 72, matchNameValue
 		}
-		return 72, MatchName
+		return 72, matchName
 	case "Accept-Ranges":
 		if value == "bytes" {
-			return 32, MatchNameValue
+			return 32, matchNameValue
 		}
-		return 32, MatchName
+		return 32, matchName
 	case "Access-Control-Allow-Credentials":
 		switch value {
 		case "FALSE":
-			return 73, MatchNameValue
+			return 73, matchNameValue
 		case "TRUE":
-			return 74, MatchNameValue
+			return 74, matchNameValue
 		}
-		return 73, MatchName
+		return 73, matchName
 	case "Access-Control-Allow-Headers":
 		switch value {
 		case "cache-control":
-			return 33, MatchNameValue
+			return 33, matchNameValue
 		case "content-type":
-			return 34, MatchNameValue
+			return 34, matchNameValue
 		case "*":
-			return 75, MatchNameValue
+			return 75, matchNameValue
 		}
-		return 33, MatchName
+		return 33, matchName
 	case "Access-Control-Allow-Methods":
 		switch value {
 		case "get":
-			return 76, MatchNameValue
+			return 76, matchNameValue
 		case "get, post, options":
-			return 77, MatchNameValue
+			return 77, matchNameValue
 		case "options":
-			return 78, MatchNameValue
+			return 78, matchNameValue
 		}
-		return 76, MatchName
+		return 76, matchName
 	case "Access-Control-Allow-Origin":
 		if value == "*" {
-			return 35, MatchNameValue
+			return 35, matchNameValue
 		}
-		return 35, MatchName
+		return 35, matchName
 	case "Access-Control-Expose-Headers":
 		if value == "content-length" {
-			return 79, MatchNameValue
+			return 79, matchNameValue
 		}
-		return 79, MatchName
+		return 79, matchName
 	case "Access-Control-Request-Headers":
 		if value == "content-type" {
-			return 80, MatchNameValue
+			return 80, matchNameValue
 		}
-		return 80, MatchName
+		return 80, matchName
 	case "Access-Control-Request-Method":
 		switch value {
 		case "get":
-			return 81, MatchNameValue
+			return 81, matchNameValue
 		case "post":
-			return 82, MatchNameValue
+			return 82, matchNameValue
 		}
-		return 81, MatchName
+		return 81, matchName
 	case "Age":
 		if value == "0" {
-			return 2, MatchNameValue
+			return 2, matchNameValue
 		}
-		return 2, MatchName
+		return 2, matchName
 	case "Alt-Svc":
 		if value == "clear" {
-			return 83, MatchNameValue
+			return 83, matchNameValue
 		}
-		return 83, MatchName
+		return 83, matchName
 	case "Authorization":
 		if value == "" {
-			return 84, MatchNameValue
+			return 84, matchNameValue
 		}
-		return 84, MatchName
+		return 84, matchName
 	case "Cache-Control":
 		switch value {
 		case "no-store":
-			return 40, MatchNameValue
+			return 40, matchNameValue
 		case "public, max-age=31536000":
-			return 41, MatchNameValue
+			return 41, matchNameValue
 		case "max-age=0":
-			return 36, MatchNameValue
+			return 36, matchNameValue
 		case "max-age=2592000":
-			return 37, MatchNameValue
+			return 37, matchNameValue
 		case "max-age=604800":
-			return 38, MatchNameValue
+			return 38, matchNameValue
 		case "no-cache":
-			return 39, MatchNameValue
+			return 39, matchNameValue
 		}
-		return 40, MatchName
+		return 40, matchName
 	case "Content-Disposition":
 		if value == "" {
-			return 3, MatchNameValue
+			return 3, matchNameValue
 		}
-		return 3, MatchName
+		return 3, matchName
 	case "Content-Encoding":
 		switch value {
 		case "gzip":
-			return 43, MatchNameValue
+			return 43, matchNameValue
 		case "br":
-			return 42, MatchNameValue
+			return 42, matchNameValue
 		}
-		return 43, MatchName
+		return 43, matchName
 	case "Content-Length":
 		if value == "0" {
-			return 4, MatchNameValue
+			return 4, matchNameValue
 		}
-		return 4, MatchName
+		return 4, matchName
 	case "Content-Security-Policy":
 		if value == "script-src 'none'; object-src 'none'; base-uri 'none'" {
-			return 85, MatchNameValue
+			return 85, matchNameValue
 		}
-		return 85, MatchName
+		return 85, matchName
 	case "Content-Type":
 		switch value {
 		case "text/plain;charset=utf-8":
-			return 54, MatchNameValue
+			return 54, matchNameValue
 		case "application/dns-message":
-			return 44, MatchNameValue
+			return 44, matchNameValue
 		case "application/javascript":
-			return 45, MatchNameValue
+			return 45, matchNameValue
 		case "image/jpeg":
-			return 49, MatchNameValue
+			return 49, matchNameValue
 		case "image/png":
-			return 50, MatchNameValue
+			return 50, matchNameValue
 		case "text/css":
-			return 51, MatchNameValue
+			return 51, matchNameValue
 		case "text/html; charset=utf-8":
-			return 52, MatchNameValue
+			return 52, matchNameValue
 		case "text/plain":
-			return 53, MatchNameValue
+			return 53, matchNameValue
 		case "application/json":
-			return 46, MatchNameValue
+			return 46, matchNameValue
 		case "application/x-www-form-urlencoded":
-			return 47, MatchNameValue
+			return 47, matchNameValue
 		case "image/gif":
-			return 48, MatchNameValue
+			return 48, matchNameValue
 		}
-		return 54, MatchName
+		return 54, matchName
 	case "Cookie":
 		if value == "" {
-			return 5, MatchNameValue
+			return 5, matchNameValue
 		}
-		return 5, MatchName
+		return 5, matchName
 	case "Date":
 		if value == "" {
-			return 6, MatchNameValue
+			return 6, matchNameValue
 		}
-		return 6, MatchName
+		return 6, matchName
 	case "Early-Data":
 		if value == "1" {
-			return 86, MatchNameValue
+			return 86, matchNameValue
 		}
-		return 86, MatchName
+		return 86, matchName
 	case "Etag":
 		if value == "" {
-			return 7, MatchNameValue
+			return 7, matchNameValue
 		}
-		return 7, MatchName
+		return 7, matchName
 	case "Expect-Ct":
 		if value == "" {
-			return 87, MatchNameValue
+			return 87, matchNameValue
 		}
-		return 87, MatchName
+		return 87, matchName
 	case "Forwarded":
 		if value == "" {
-			return 88, MatchNameValue
+			return 88, matchNameValue
 		}
-		return 88, MatchName
+		return 88, matchName
 	case "If-Modified-Since":
 		if value == "" {
-			return 8, MatchNameValue
+			return 8, matchNameValue
 		}
-		return 8, MatchName
+		return 8, matchName
 	case "If-None-Match":
 		if value == "" {
-			return 9, MatchNameValue
+			return 9, matchNameValue
 		}
-		return 9, MatchName
+		return 9, matchName
 	case "If-Range":
 		if value == "" {
-			return 89, MatchNameValue
+			return 89, matchNameValue
 		}
-		return 89, MatchName
+		return 89, matchName
 	case "Last-Modified":
 		if value == "" {
-			return 10, MatchNameValue
+			return 10, matchNameValue
 		}
-		return 10, MatchName
+		return 10, matchName
 	case "Link":
 		if value == "" {
-			return 11, MatchNameValue
+			return 11, matchNameValue
 		}
-		return 11, MatchName
+		return 11, matchName
 	case "Location":
 		if value == "" {
-			return 12, MatchNameValue
+			return 12, matchNameValue
 		}
-		return 12, MatchName
+		return 12, matchName
 	case "Origin":
 		if value == "" {
-			return 90, MatchNameValue
+			return 90, matchNameValue
 		}
-		return 90, MatchName
+		return 90, matchName
 	case "Purpose":
 		if value == "prefetch" {
-			return 91, MatchNameValue
+			return 91, matchNameValue
 		}
-		return 91, MatchName
+		return 91, matchName
 	case "Range":
 		if value == "bytes=0-" {
-			return 55, MatchNameValue
+			return 55, matchNameValue
 		}
-		return 55, MatchName
+		return 55, matchName
 	case "Referer":
 		if value == "" {
-			return 13, MatchNameValue
+			return 13, matchNameValue
 		}
-		return 13, MatchName
+		return 13, matchName
 	case "Server":
 		if value == "" {
-			return 92, MatchNameValue
+			return 92, matchNameValue
 		}
-		return 92, MatchName
+		return 92, matchName
 	case "Set-Cookie":
 		if value == "" {
-			return 14, MatchNameValue
+			return 14, matchNameValue
 		}
-		return 14, MatchName
+		return 14, matchName
 	case "Strict-Transport-Security":
 		switch value {
 		case "max-age=31536000; includesubdomains":
-			return 57, MatchNameValue
+			return 57, matchNameValue
 		case "max-age=31536000; includesubdomains; preload":
-			return 58, MatchNameValue
+			return 58, matchNameValue
 		case "max-age=31536000":
-			return 56, MatchNameValue
+			return 56, matchNameValue
 		}
-		return 57, MatchName
+		return 57, matchName
 	case "Timing-Allow-Origin":
 		if value == "*" {
-			return 93, MatchNameValue
+			return 93, matchNameValue
 		}
-		return 93, MatchName
+		return 93, matchName
 	case "Upgrade-Insecure-Requests":
 		if value == "1" {
-			return 94, MatchNameValue
+			return 94, matchNameValue
 		}
-		return 94, MatchName
+		return 94, matchName
 	case "User-Agent":
 		if value == "" {
-			return 95, MatchNameValue
+			return 95, matchNameValue
 		}
-		return 95, MatchName
+		return 95, matchName
 	case "Vary":
 		switch value {
 		case "accept-encoding":
-			return 59, MatchNameValue
+			return 59, matchNameValue
 		case "origin":
-			return 60, MatchNameValue
+			return 60, matchNameValue
 		}
-		return 59, MatchName
+		return 59, matchName
 	case "X-Content-Type-Options":
 		if value == "nosniff" {
-			return 61, MatchNameValue
+			return 61, matchNameValue
 		}
-		return 61, MatchName
+		return 61, matchName
 	case "X-Forwarded-For":
 		if value == "" {
-			return 96, MatchNameValue
+			return 96, matchNameValue
 		}
-		return 96, MatchName
+		return 96, matchName
 	case "X-Frame-Options":
 		switch value {
 		case "deny":
-			return 97, MatchNameValue
+			return 97, matchNameValue
 		case "sameorigin":
-			return 98, MatchNameValue
+			return 98, matchNameValue
 		}
-		return 97, MatchName
+		return 97, matchName
 	case "X-Xss-Protection":
 		if value == "1; mode=block" {
-			return 62, MatchNameValue
+			return 62, matchNameValue
 		}
-		return 62, MatchName
+		return 62, matchName
 	}
-	return 0, MatchNone
+	return 0, matchNone
 }
