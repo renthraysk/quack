@@ -8,9 +8,6 @@ const (
 )
 
 var errUnexpectedEnd = errors.New("unexpected end")
-
-// https://datatracker.ietf.org/doc/html/rfc9204#section-4.1.1
-
 var errVarintOverflow = errors.New("quack: varint overflow")
 
 func Read(p []byte, mask uint8) (uint64, []byte, error) {

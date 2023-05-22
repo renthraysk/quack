@@ -7,7 +7,7 @@ import (
 
 func TestReadVarint(t *testing.T) {
 
-	bad := [10]byte{}
+	bad := [16]byte{}
 	memset(bad[:], 0xFF)
 
 	tests := []struct {
@@ -30,9 +30,11 @@ func TestReadVarint(t *testing.T) {
 
 		{"overflow-1", Append(nil, maxVarint62+1, 1, 0), 1, 0, errVarintOverflow},
 		{"overflow-7", Append(nil, maxVarint62+1, 0x7F, 0), 0x7F, 0, errVarintOverflow},
+		{"overflow-8", Append(nil, maxVarint62+1, 0xFF, 0), 0xFF, 0, errVarintOverflow},
 
-		{"overflow", bad[:9], 0x7F, 0, errUnexpectedEnd},
-		{"enoughbytes", bad[:10], 0x7F, 0, errVarintOverflow},
+		{"short", bad[:9], 0x7F, 0, errUnexpectedEnd},
+		{"overflow", bad[:10], 0x7F, 0, errVarintOverflow},
+		{"long", bad[:], 0x7F, 0, errVarintOverflow},
 
 		{"eos", []byte{0x7F, 0x80}, 0x7F, 0, errUnexpectedEnd},
 	}
