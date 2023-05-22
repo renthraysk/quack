@@ -50,7 +50,7 @@ func (dt *DT) evictLocked(targetSize uint64) bool {
 
 	size := dt.size
 	for i < len(dt.headers) && size > targetSize {
-		size -= dt.headers[i].Size()
+		size -= dt.headers[i].size()
 		i++
 	}
 	if i == 0 {

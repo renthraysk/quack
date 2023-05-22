@@ -5,7 +5,7 @@ type Header struct {
 	Value string
 }
 
-func (h Header) Size() uint64 {
+func (h Header) size() uint64 {
 	return headerSize(h.Name, h.Value)
 }
 
