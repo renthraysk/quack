@@ -4,6 +4,7 @@ import (
 	"errors"
 	"sync/atomic"
 
+	"github.com/renthraysk/quack/ascii"
 	"github.com/renthraysk/quack/internal/field"
 	"github.com/renthraysk/quack/varint"
 )
@@ -25,7 +26,8 @@ func NewEncoder() *Encoder {
 
 // https://www.rfc-editor.org/rfc/rfc9114.html#name-request-pseudo-header-field
 func (e *Encoder) AppendRequest(p []byte, method, scheme, authority, path string, header map[string][]string) ([]byte, error) {
-	if scheme == "http" || scheme == "https" {
+
+	if ascii.EqualI(scheme, "https") || ascii.EqualI(scheme, "http") {
 
 		// Clients that generate HTTP/3 requests directly SHOULD use the
 		// :authority pseudo-header field instead of the Host header field.

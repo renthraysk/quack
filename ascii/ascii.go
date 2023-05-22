@@ -25,10 +25,11 @@ func isUpper(c byte) bool { return c-'A' <= 'Z'-'A' }
 
 // ToLower returns the ASCII lowercase version of c.
 func ToLower(c byte) byte {
+	var x int
 	if isUpper(c) {
-		c += 'a' - 'A'
+		x = 'a' - 'A'
 	}
-	return c
+	return c + byte(x)
 }
 
 func isIn(c byte, lo, hi uint64) bool {
@@ -138,4 +139,16 @@ func ToCanonical(b []byte) string {
 		}
 	}
 	return string(b)
+}
+
+func EqualI(a, b string) bool {
+	i := 0
+
+	if len(a) != len(b) {
+		return false
+	}
+	for i < len(a) && ToLower(a[i]) == ToLower(b[i]) {
+		i++
+	}
+	return i >= len(a)
 }
