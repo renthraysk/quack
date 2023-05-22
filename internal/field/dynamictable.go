@@ -13,18 +13,31 @@ import (
 )
 
 type DT struct {
-	mu       sync.Mutex
-	headers  []Header
-	base     uint64
-	capacity uint64
-	size     uint64
+	mu          sync.Mutex
+	headers     []Header
+	size        uint64
+	base        uint64
+	capacity    uint64
+	maxCapacity uint64
 
 	// fieldEncoder is the encoder that encodes in manner understood by the peer's
 	// decoder
 	fieldEncoder *Encoder
 }
 
+func (dt *DT) setMaxCapacity(maxCapacity uint64) {
+	dt.mu.Lock()
+	defer dt.mu.Unlock()
+	dt.maxCapacity = maxCapacity
+	if dt.capacity > maxCapacity {
+		dt.setCapacityLocked(maxCapacity)
+	}
+}
+
 func (dt *DT) setCapacityLocked(capacity uint64) bool {
+	if capacity > dt.maxCapacity {
+		return false
+	}
 	if dt.evictLocked(capacity) {
 		dt.capacity = capacity
 		return true
