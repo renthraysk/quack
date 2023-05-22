@@ -13,15 +13,12 @@ import (
 )
 
 type DT struct {
-	mu          sync.Mutex
-	headers     []Header
-	size        uint64
-	base        uint64
-	capacity    uint64
-	maxCapacity uint64
-
-	// fieldEncoder is the encoder that encodes in manner understood by the peer's
-	// decoder
+	mu           sync.Mutex
+	headers      []Header
+	size         uint64
+	base         uint64
+	capacity     uint64
+	maxCapacity  uint64
 	fieldEncoder *Encoder
 }
 
@@ -282,7 +279,7 @@ func (dt *DT) ParseEncoderInstructions(p []byte) error {
 				return err
 			}
 			if ok := dt.insertLocked(name, value); !ok {
-				return errors.New("failed to insert header with name referernce")
+				return errors.New("failed to insert header with name reference")
 			}
 			p = q
 		}
