@@ -46,19 +46,19 @@ func (d *Decoder) readFieldSectionPrefix(p []byte) ([]byte, uint64, uint64, erro
 
 		fullRange := 2 * maxEntries
 		if encodedInsertCount > fullRange {
-			return p, 0, 0, errors.New("")
+			return p, 0, 0, errors.New("encodedInsertCount > fullRange")
 		}
 		maxValue := d.totalNumberOfInserts + maxEntries
 		maxWrapped := (maxValue / fullRange) * fullRange
 		reqInsertCount = maxWrapped + encodedInsertCount - 1
 		if reqInsertCount > maxValue {
 			if reqInsertCount <= fullRange {
-				return p, 0, 0, errors.New("")
+				return p, 0, 0, errors.New("reqInsertCount <= fullRange")
 			}
 			reqInsertCount -= fullRange
 		}
 		if reqInsertCount == 0 {
-			return p, 0, 0, errors.New("")
+			return p, 0, 0, errors.New("reqInsertCount of 0 not encoded as 0")
 		}
 	}
 

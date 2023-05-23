@@ -15,11 +15,11 @@ import (
 type DT struct {
 	mu           sync.Mutex
 	headers      []Header
+	fieldEncoder *Encoder
 	size         uint64
 	base         uint64
 	capacity     uint64
 	maxCapacity  uint64
-	fieldEncoder *Encoder
 }
 
 func (dt *DT) setMaxCapacity(maxCapacity uint64) {
@@ -36,7 +36,7 @@ func (dt *DT) setCapacityLocked(capacity uint64) bool {
 		return false
 	}
 	if dt.evictLocked(capacity) {
-		dt.capacity = capacity
+	dt.capacity = capacity
 		return true
 	}
 	return false
@@ -209,14 +209,14 @@ func (dt *DT) appendEncoderInstructions(p []byte, header map[string][]string) ([
 		}
 	}
 	// Build a fieldEncoder for when peer acks.
-	m := make(nameValues, len(dt.headers))
+	nv := make(nameValues, len(dt.headers))
 	for i, hf := range dt.headers {
-		m[hf.Name] = append(m[hf.Name], value{value: hf.Value, index: uint64(i)})
+		nv[hf.Name] = append(nv[hf.Name], value{value: hf.Value, index: uint64(i)})
 	}
 
 	var reqInsertCount uint64
 
-	return p, newEncoder(m, reqInsertCount, dt.base, dt.capacity)
+	return p, newEncoder(nv, reqInsertCount, dt.base, dt.capacity)
 }
 
 func (dt *DT) ParseEncoderInstructions(p []byte) error {
@@ -266,6 +266,7 @@ func (dt *DT) ParseEncoderInstructions(p []byte) error {
 				return err
 			}
 			if ok := dt.insertLocked(name, value); !ok {
+				return errors.New("failed to insert header with literal name")
 			}
 			p = q
 
