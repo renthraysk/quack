@@ -36,7 +36,7 @@ func (dt *DT) setCapacityLocked(capacity uint64) bool {
 		return false
 	}
 	if dt.evictLocked(capacity) {
-	dt.capacity = capacity
+		dt.capacity = capacity
 		return true
 	}
 	return false
