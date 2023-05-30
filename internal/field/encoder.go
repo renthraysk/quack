@@ -29,18 +29,18 @@ type nameValues map[string][]value
 
 // Encoder field line encoder, immutable once created
 type Encoder struct {
-	nv             nameValues
-	reqInsertCount uint64
-	base           uint64
-	capacity       uint64
+	nv          nameValues
+	base        uint64
+	insertCount uint64
+	capacity    uint64
 }
 
-func newEncoder(nv nameValues, reqInsertCount, base, capacity uint64) *Encoder {
+func newEncoder(nv nameValues, base, insertCount, capacity uint64) *Encoder {
 	return &Encoder{
-		nv:             nv,
-		reqInsertCount: reqInsertCount,
-		base:           base,
-		capacity:       capacity,
+		nv:          nv,
+		base:        base,
+		insertCount: insertCount,
+		capacity:    capacity,
 	}
 }
 
@@ -81,26 +81,22 @@ func (fe *Encoder) AppendConnect(p []byte, authority string, header map[string][
 
 // https://www.rfc-editor.org/rfc/rfc9204.html#name-encoded-field-section-prefi
 func (fe *Encoder) appendFieldSectionPrefix(p []byte) []byte {
-	if fe == nil {
-		// Operating with only static table.
+	if fe == nil || fe.insertCount == 0 {
+		// Operating with only static table
 		return append(p, 0, 0)
 	}
 
-	var encodedInsertCount uint64
-
 	// https://www.rfc-editor.org/rfc/rfc9204.html#name-required-insert-count
-	if fe.reqInsertCount > 0 {
-		maxEntries := fe.capacity / 32
-		encodedInsertCount = (fe.reqInsertCount % (2 * maxEntries)) + 1
-	}
+	maxEntries := fe.capacity / 32
+	p = varint.Append(p, (fe.insertCount%(2*maxEntries))+1, 0xFF, 0)
+
 	// https://www.rfc-editor.org/rfc/rfc9204.html#name-base
-	deltaBase, sign := bits.Sub64(fe.base, fe.reqInsertCount, 0)
+	deltaBase, sign := bits.Sub64(fe.base, fe.insertCount, 0)
 	if sign != 0 {
-		deltaBase = fe.reqInsertCount - fe.base - 1
+		deltaBase = fe.insertCount - fe.base - 1
 		sign = 0x80
 	}
-	p = varint.Append(p, encodedInsertCount, 0xFF, 0)
-	return varint.Append(p, deltaBase, 0b0111_1111, byte(sign))
+	return varint.Append(p, deltaBase, 0x7F, byte(sign))
 }
 
 func (fe *Encoder) lookup(name, value string) (index uint64, isStatic bool, m match) {

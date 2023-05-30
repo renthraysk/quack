@@ -1,7 +1,9 @@
 package field
 
 import (
+	"strconv"
 	"strings"
+	"testing"
 )
 
 var http3Table = map[string][]string{
@@ -61,64 +63,53 @@ var http3Table = map[string][]string{
 
 func isPseudo(name string) bool { return strings.HasPrefix(name, ":") }
 
-/*
-func testHeaderField(t *testing.T, name, value string) {
-	e := NewEncoder(1 << 10)
-
-	p := make([]byte, 2, 1<<10)
-
-	t.Helper()
-	if isPseudo(name) {
-		switch name {
-		case ":status":
-			status, err := strconv.Atoi(value)
-			if err != nil {
-				t.Fatalf("error parsing csv status code: %v", err)
-			}
-			p = appendStatus(p, status)
-		case ":method":
-			p = appendMethod(p, value)
-		case ":path":
-			p = appendPath(p, value)
-		case ":authority":
-			p = appendAuthority(p, value)
-		case ":scheme":
-			p = appendScheme(p, value)
-		default:
-			t.Fatalf("unknown pseudo header %s", name)
-		}
-	} else {
-		p = e.appendField(p, name, value)
-	}
-	d := NewDecoder(1 << 10)
-	err := d.Decode(p, func(k, v string) {
-		if name != k {
-			t.Errorf("expected name %q, got %q", name, k)
-		}
-		if value != v {
-			t.Errorf("expected value %q, got %q", value, v)
-		}
-	})
-	if err != nil {
-		t.Errorf("decode error: %v", err)
-	}
-}
-
-func testStaticTable(t *testing.T) {
-	for key, values := range http3Table {
-		t.Run(key, func(t *testing.T) {
+func TestFieldEncoderStaticTable(t *testing.T) {
+	for name, values := range http3Table {
+		t.Run(name, func(t *testing.T) {
 			if values == nil {
-				testHeaderField(t, key, "")
-				return
+				values = []string{""}
 			}
+			e := &Encoder{}
+			buf := make([]byte, 2, 1<<10)
+
 			for _, value := range values {
-				testHeaderField(t, key, value)
+				var p []byte
+
+				if isPseudo(name) {
+					switch name {
+					case ":status":
+						status, err := strconv.Atoi(value)
+						if err != nil {
+							t.Fatalf("error parsing csv status code: %v", err)
+						}
+						p = appendStatus(buf, status)
+					case ":method":
+						p = appendMethod(buf, value)
+					case ":path":
+						p = appendPath(buf, value)
+					case ":authority":
+						p = appendAuthority(buf, value)
+					case ":scheme":
+						p = appendScheme(buf, value)
+					default:
+						t.Fatalf("unknown pseudo header %s", name)
+					}
+				} else {
+					p = e.appendFieldLine(buf, name, value)
+				}
+				d := &Decoder{}
+				err := d.Decode(p, func(k, v string) {
+					if name != k {
+						t.Errorf("expected name %q, got %q", name, k)
+					}
+					if value != v {
+						t.Errorf("expected value %q, got %q", value, v)
+					}
+				})
+				if err != nil {
+					t.Errorf("decode error: %v", err)
+				}
 			}
 		})
 	}
 }
-
-func TestStaticTable(t *testing.T) {
-	testStaticTable(t)
-}
-*/

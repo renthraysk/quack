@@ -16,10 +16,14 @@ type DT struct {
 	mu           sync.Mutex
 	headers      []Header
 	fieldEncoder *Encoder
+	evicted      uint64
 	size         uint64
-	base         uint64
 	capacity     uint64
 	maxCapacity  uint64
+}
+
+func (dt *DT) insertCount() uint64 {
+	return dt.evicted + uint64(len(dt.headers))
 }
 
 func (dt *DT) setMaxCapacity(maxCapacity uint64) {
@@ -69,12 +73,12 @@ func (dt *DT) evictLocked(targetSize uint64) bool {
 	if i >= len(dt.headers) {
 		return false
 	}
-	b, c := bits.Add64(dt.base, uint64(i), 0)
+	evicted, c := bits.Add64(dt.evicted, uint64(i), 0)
 	if c != 0 {
 		return false
 	}
 	// Eviction can proceed, modify state.
-	dt.base = b
+	dt.evicted = evicted
 	dt.size = size
 	dt.headers = append(dt.headers[:0], dt.headers[i:]...)
 	return true
@@ -94,27 +98,25 @@ func (dt *DT) insertLocked(name, value string) bool {
 	return true
 }
 
-// appendSnapshot will append encoder instructions to recreate the current state
-// of the dynamic table
 func (dt *DT) appendSnapshot(p []byte) []byte {
 	dt.mu.Lock()
 	defer dt.mu.Unlock()
 
 	p = inst.AppendSetDynamicTableCapacity(p, dt.capacity)
 
-	n := make(map[string]uint64, len(dt.headers))
-	m := make(map[Header]uint64, len(dt.headers))
+	n := make(map[string]int, len(dt.headers))
+	m := make(map[Header]int, len(dt.headers))
 
 	for i, hf := range dt.headers {
 		if j, ok := m[hf]; ok {
-			p = inst.AppendDuplicate(p, j)
+			p = inst.AppendDuplicate(p, uint64(j))
 			continue
 		}
-		m[hf] = uint64(i)
+		m[hf] = i
 		if j, ok := n[hf.Name]; ok {
-			p = inst.AppendInsertWithNameReference(p, j, false)
+			p = inst.AppendInsertWithNameReference(p, uint64(j), false)
 		} else {
-			n[hf.Name] = uint64(i)
+			n[hf.Name] = i
 			p = inst.AppendInsertWithLiteralName(p, hf.Name)
 		}
 		p = inst.AppendStringLiteral(p, hf.Value, true)
@@ -123,7 +125,7 @@ func (dt *DT) appendSnapshot(p []byte) []byte {
 }
 
 // https://www.rfc-editor.org/rfc/rfc9204.html#name-insert-with-literal-name
-func nameInsertWithLiteralName(p, buf []byte) (string, []byte, error) {
+func decodeNameInsertWithLiteralName(p, buf []byte) (string, []byte, error) {
 	const H = 0b0010_0000
 	const M = 0b0001_1111
 
@@ -147,7 +149,7 @@ func nameInsertWithLiteralName(p, buf []byte) (string, []byte, error) {
 }
 
 // https://www.rfc-editor.org/rfc/rfc9204.html#name-insert-with-name-reference
-func (dt *DT) nameInsertWithNameReference(p []byte) (string, []byte, error) {
+func (dt *DT) decodeNameInsertWithNameReference(p []byte) (string, []byte, error) {
 	const T = 0b0100_0000
 	const M = 0b0011_1111
 
@@ -155,16 +157,17 @@ func (dt *DT) nameInsertWithNameReference(p []byte) (string, []byte, error) {
 	if err != nil {
 		return "", p, err
 	}
-	if p[0]&T == T {
+	if p[0]&T != 0 {
 		if i >= uint64(len(staticTable)) {
 			return "", p, errors.New("invalid static table index")
 		}
 		return staticTable[i].Name, q, nil
 	}
-	if i >= uint64(len(dt.headers)) {
+	absI := dt.insertCount() - i - 1
+	if absI >= uint64(len(dt.headers)) {
 		return "", p, errors.New("invalid dynamic table index")
 	}
-	return dt.headers[i].Name, q, nil
+	return dt.headers[absI].Name, q, nil
 }
 
 func (dt *DT) appendEncoderInstructionLocked(p []byte, name, value string) []byte {
@@ -203,6 +206,8 @@ func (dt *DT) appendEncoderInstructions(p []byte, header map[string][]string) ([
 	dt.mu.Lock()
 	defer dt.mu.Unlock()
 
+	base := dt.insertCount()
+
 	for name, values := range header {
 		for _, value := range values {
 			p = dt.appendEncoderInstructionLocked(p, name, value)
@@ -214,12 +219,10 @@ func (dt *DT) appendEncoderInstructions(p []byte, header map[string][]string) ([
 		nv[hf.Name] = append(nv[hf.Name], value{value: hf.Value, index: uint64(i)})
 	}
 
-	var reqInsertCount uint64
-
-	return p, newEncoder(nv, reqInsertCount, dt.base, dt.capacity)
+	return p, newEncoder(nv, base, dt.insertCount()-base, dt.capacity)
 }
 
-func (dt *DT) ParseEncoderInstructions(p []byte) error {
+func (dt *DT) DecodeEncoderInstructions(p []byte) error {
 	var decodeBuf [256]byte
 
 	dt.mu.Lock()
@@ -231,15 +234,17 @@ func (dt *DT) ParseEncoderInstructions(p []byte) error {
 			// https://www.rfc-editor.org/rfc/rfc9204.html#name-duplicate
 			const M = 0b0001_1111
 
-			i, q, err := varint.Read(p, M)
+			relI, q, err := varint.Read(p, M)
 			if err != nil {
 				return err
 			}
-			if i > uint64(len(dt.headers)) {
-				return errors.New("not existing header")
+			// Absolute Index = Insert Count - Relative Index - 1
+			absI := dt.insertCount() - relI - 1
+			if absI > uint64(len(dt.headers)) {
+				return errors.New("duplicate: not existing header")
 			}
-			if ok := dt.insertLocked(dt.headers[i].Name, dt.headers[i].Value); !ok {
-				return errors.New("failed to insert duplicate")
+			if ok := dt.insertLocked(dt.headers[absI].Name, dt.headers[absI].Value); !ok {
+				return errors.New("duplicate: failed to insert")
 			}
 			p = q
 
@@ -257,7 +262,7 @@ func (dt *DT) ParseEncoderInstructions(p []byte) error {
 			p = q
 
 		case 0b010, 0b011:
-			name, q, err := nameInsertWithLiteralName(p, decodeBuf[:0])
+			name, q, err := decodeNameInsertWithLiteralName(p, decodeBuf[:0])
 			if err != nil {
 				return err
 			}
@@ -271,7 +276,7 @@ func (dt *DT) ParseEncoderInstructions(p []byte) error {
 			p = q
 
 		default:
-			name, q, err := dt.nameInsertWithNameReference(p)
+			name, q, err := dt.decodeNameInsertWithNameReference(p)
 			if err != nil {
 				return err
 			}

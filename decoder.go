@@ -24,7 +24,7 @@ func (d *Decoder) Decode(in []byte, accept func(name, value string)) error {
 }
 
 func (d *Decoder) ParseEncoderInstructions(in []byte) error {
-	if err := d.dt.ParseEncoderInstructions(in); err != nil {
+	if err := d.dt.DecodeEncoderInstructions(in); err != nil {
 		return ErrEncoderStream{err}
 	}
 	return nil

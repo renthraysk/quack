@@ -14,4 +14,3 @@ Also will canonicalise incoming header names to HTTP/1 camel case style.
 
 ## Notes
 
-- QPACK's static table is used to generate pure go code. 

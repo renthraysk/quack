@@ -24,6 +24,15 @@ func NewEncoder() *Encoder {
 	return &Encoder{}
 }
 
+func allEqual[T comparable](s []T, one T) bool {
+	for _, v := range s {
+		if v != one {
+			return false
+		}
+	}
+	return true
+}
+
 // https://www.rfc-editor.org/rfc/rfc9114.html#name-request-pseudo-header-field
 func (e *Encoder) AppendRequest(p []byte, method, scheme, authority, path string, header map[string][]string) ([]byte, error) {
 
@@ -34,7 +43,9 @@ func (e *Encoder) AppendRequest(p []byte, method, scheme, authority, path string
 		if authority == "" {
 			return p, errors.New("empty :authority")
 		}
-		delete(header, "Host")
+		if !allEqual(header["Host"], authority) {
+			return p, errors.New(":authority and Host header inconsistent")
+		}
 
 		// This pseudo-header field MUST NOT be empty for "http" or "https" URIs;
 		// "http" or "https" URIs that do not contain a path component MUST
