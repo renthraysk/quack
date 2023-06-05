@@ -23,7 +23,8 @@ func Decode(dst, in []byte) ([]byte, error) {
 			dst = append(dst, b)
 		}
 	}
-	// n < 32 and len(in) < 4, so can load up remaining bytes.
+	// n < 32 and len(in) < 4, so x has enough capacity to load up remaining
+	// bytes.
 	for i := 0; i < len(in); i++ {
 		x <<= 8
 		x |= uint64(in[i])

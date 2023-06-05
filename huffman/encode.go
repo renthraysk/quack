@@ -50,7 +50,8 @@ func AppendStringLower(p []byte, s string) []byte {
 	return appendFinal(p, x, n)
 }
 
-// AppendInt
+// AppendInt appends the huffman encoded ASCII representation of v to p,
+// return the result.
 func AppendInt(p []byte, v int64) []byte {
 	if v == 0 {
 		return appendFinal(p, uint64(codes['0']), uint(codeLengths['0']))
@@ -127,13 +128,16 @@ func appendByte(p []byte, x uint64, n uint, c byte) ([]byte, uint64, uint) {
 
 // append00To99 appends the huffman codes for the two digit ASCII
 // representation of i into the tuple (p, x, n)
-// Ensures returned x has last than 32 valid bits, and n is less than 32.
 // Assumes x has less than 32 valid bits, and n to be less than 32.
+// Ensures returned x has less than 32 valid bits, and n is less than 32.
 func append00To99(p []byte, x uint64, n uint, i int) ([]byte, uint64, uint) {
 	// inlines
 	return appendCode(p, x, n, uint32(codes00To99[i].code), codes00To99[i].length)
 }
 
+// appendCode appends the huffman code of given length to (p, x, n)
+// Assumes x has less than 32 valid bits, and n to be less than 32
+// Ensures returned x has less than 32 valid bits, and n is less than 32.
 func appendCode(p []byte, x uint64, n uint, code uint32, length uint8) ([]byte, uint64, uint) {
 	// inlines
 	x <<= length % 64
