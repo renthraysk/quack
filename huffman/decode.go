@@ -9,6 +9,10 @@ func Decode(dst, in []byte) ([]byte, error) {
 	var x uint64
 	var n uint
 
+	if len(in) > maxEncodedLength {
+		return dst, errInputTooLong
+	}
+
 	for len(in) >= 4 {
 		x <<= 32
 		x |= uint64(in[3]) | uint64(in[2])<<8 | uint64(in[1])<<16 | uint64(in[0])<<24
