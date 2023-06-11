@@ -43,7 +43,7 @@ func (e *Encoder) AppendRequest(p []byte, method, scheme, authority, path string
 		if authority == "" {
 			return p, errors.New("empty :authority")
 		} else if hosts, ok := header["Host"]; ok && !allEqual(hosts, authority) {
-			return p, errors.New(":authority and Host header inconsistent")
+			return p, errors.New(":authority and Host header are inconsistent")
 		}
 
 		// This pseudo-header field MUST NOT be empty for "http" or "https" URIs;
