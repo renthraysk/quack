@@ -36,7 +36,7 @@ func allEqual[T comparable](s []T, one T) bool {
 // https://www.rfc-editor.org/rfc/rfc9114.html#name-request-pseudo-header-field
 func (e *Encoder) AppendRequest(p []byte, method, scheme, authority, path string, header map[string][]string) ([]byte, error) {
 
-	if ascii.EqualI(scheme, "https") || ascii.EqualI(scheme, "http") {
+	if ascii.EqualInsensitive(scheme, "https") || ascii.EqualInsensitive(scheme, "http") {
 
 		// Clients that generate HTTP/3 requests directly SHOULD use the
 		// :authority pseudo-header field instead of the Host header field.

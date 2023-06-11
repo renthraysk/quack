@@ -141,7 +141,7 @@ func ToCanonical(b []byte) string {
 	return string(b)
 }
 
-func EqualI(a, b string) bool {
+func EqualInsensitive(a, b string) bool {
 	i := 0
 
 	if len(a) != len(b) {
