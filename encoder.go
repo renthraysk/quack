@@ -42,8 +42,7 @@ func (e *Encoder) AppendRequest(p []byte, method, scheme, authority, path string
 		// :authority pseudo-header field instead of the Host header field.
 		if authority == "" {
 			return p, errors.New("empty :authority")
-		}
-		if !allEqual(header["Host"], authority) {
+		} else if hosts, ok := header["Host"]; ok && !allEqual(hosts, authority) {
 			return p, errors.New(":authority and Host header inconsistent")
 		}
 
