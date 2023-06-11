@@ -22,8 +22,16 @@ type DT struct {
 	maxCapacity  uint64
 }
 
-func (dt *DT) insertCount() uint64 {
+func (dt *DT) insertCountLocked() uint64 {
 	return dt.evicted + uint64(len(dt.headers))
+}
+
+func (dt *DT) headerFromRelativePosLocked(rel uint64) (Header, bool) {
+	abs := dt.insertCountLocked() - rel - 1
+	if abs >= uint64(len(dt.headers)) {
+		return Header{}, false
+	}
+	return dt.headers[abs], true
 }
 
 func (dt *DT) setMaxCapacity(maxCapacity uint64) {
@@ -93,6 +101,7 @@ func (dt *DT) insertLocked(name, value string) bool {
 	if ok := dt.evictLocked(dt.capacity - s); !ok {
 		return false
 	}
+	// This addition cannot overflow as dt.size <= dt.capacity - s
 	dt.size += s
 	dt.headers = append(dt.headers, Header{Name: name, Value: value})
 	return true
@@ -163,11 +172,11 @@ func (dt *DT) decodeNameInsertWithNameReference(p []byte) (string, []byte, error
 		}
 		return staticTable[i].Name, q, nil
 	}
-	absI := dt.insertCount() - i - 1
-	if absI >= uint64(len(dt.headers)) {
+	h, ok := dt.headerFromRelativePosLocked(i)
+	if !ok {
 		return "", p, errors.New("invalid dynamic table index")
 	}
-	return dt.headers[absI].Name, q, nil
+	return h.Name, q, nil
 }
 
 func (dt *DT) appendEncoderInstructionLocked(p []byte, name, value string) []byte {
@@ -206,7 +215,7 @@ func (dt *DT) appendEncoderInstructions(p []byte, header map[string][]string) ([
 	dt.mu.Lock()
 	defer dt.mu.Unlock()
 
-	base := dt.insertCount()
+	base := dt.insertCountLocked()
 
 	for name, values := range header {
 		for _, value := range values {
@@ -219,7 +228,7 @@ func (dt *DT) appendEncoderInstructions(p []byte, header map[string][]string) ([
 		nv[hf.Name] = append(nv[hf.Name], value{value: hf.Value, index: uint64(i)})
 	}
 
-	return p, newEncoder(nv, base, dt.insertCount()-base, dt.capacity)
+	return p, newEncoder(nv, base, dt.insertCountLocked()-base, dt.capacity)
 }
 
 func (dt *DT) DecodeEncoderInstructions(p []byte) error {
@@ -234,16 +243,15 @@ func (dt *DT) DecodeEncoderInstructions(p []byte) error {
 			// https://www.rfc-editor.org/rfc/rfc9204.html#name-duplicate
 			const M = 0b0001_1111
 
-			relI, q, err := varint.Read(p, M)
+			i, q, err := varint.Read(p, M)
 			if err != nil {
 				return err
 			}
-			// Absolute Index = Insert Count - Relative Index - 1
-			absI := dt.insertCount() - relI - 1
-			if absI > uint64(len(dt.headers)) {
-				return errors.New("duplicate: not existing header")
+			h, ok := dt.headerFromRelativePosLocked(i)
+			if !ok {
+				return errors.New("duplicate: non-existant header")
 			}
-			if ok := dt.insertLocked(dt.headers[absI].Name, dt.headers[absI].Value); !ok {
+			if ok := dt.insertLocked(h.Name, h.Value); !ok {
 				return errors.New("duplicate: failed to insert")
 			}
 			p = q

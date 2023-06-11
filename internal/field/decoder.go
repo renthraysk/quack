@@ -17,29 +17,18 @@ var (
 )
 
 type Decoder struct {
-	totalNumberOfInserts uint64
-	capacity             uint64
+	insertCount uint64
+	capacity    uint64
 }
 
 // https://datatracker.ietf.org/doc/html/rfc9204#name-encoded-field-section-prefi
 func (d *Decoder) readFieldSectionPrefix(p []byte) ([]byte, uint64, uint64, error) {
-	const (
-		S = 0b1000_0000
-		M = 0b0111_1111
-	)
-
 	var reqInsertCount uint64
 
 	encodedInsertCount, q, err := varint.Read(p, 0xFF)
 	if err != nil {
 		return p, 0, 0, err
 	}
-
-	deltaBase, r, err := varint.Read(q, M)
-	if err != nil {
-		return p, 0, 0, err
-	}
-
 	// https://datatracker.ietf.org/doc/html/rfc9204#name-required-insert-count
 	if encodedInsertCount != 0 {
 		maxEntries := d.capacity / 32
@@ -48,7 +37,7 @@ func (d *Decoder) readFieldSectionPrefix(p []byte) ([]byte, uint64, uint64, erro
 		if encodedInsertCount > fullRange {
 			return p, 0, 0, errors.New("encodedInsertCount > fullRange")
 		}
-		maxValue := d.totalNumberOfInserts + maxEntries
+		maxValue := d.insertCount + maxEntries
 		maxWrapped := (maxValue / fullRange) * fullRange
 		reqInsertCount = maxWrapped + encodedInsertCount - 1
 		if reqInsertCount > maxValue {
@@ -63,6 +52,15 @@ func (d *Decoder) readFieldSectionPrefix(p []byte) ([]byte, uint64, uint64, erro
 	}
 
 	// https://datatracker.ietf.org/doc/html/rfc9204#name-base
+	const (
+		S = 0b1000_0000
+		M = 0b0111_1111
+	)
+	deltaBase, r, err := varint.Read(q, M)
+	if err != nil {
+		return p, 0, 0, err
+	}
+
 	base := reqInsertCount + deltaBase
 	if q[0]&S != 0 {
 		base = reqInsertCount - deltaBase - 1
