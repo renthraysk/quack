@@ -22,7 +22,7 @@ const intern = "" +
 	"ear:pathhttpsTRUEHEADdenyDateEtagVaryPOSTLink3024041002042065004" +
 	"00503421GET*/*103PUT403304425"
 
-var staticTable = [...]Header{
+var staticTable = [...]header{
 	{Name: intern[958:968]},                             // 0 :authority
 	{Name: intern[1155:1160], Value: intern[108:109]},   // 1 :path: /
 	{Name: intern[973:976], Value: intern[66:67]},       // 2 Age: 0

@@ -9,16 +9,16 @@ import (
 func TestRFC9204_B1(t *testing.T) {
 
 	in := dehex(t, "0000510b2f696e6465782e68746d6c")
-	got := make([]Header, 0, 2)
+	got := make([]header, 0, 2)
 
 	d := &Decoder{}
 	err := d.Decode(in, func(name, value string) {
-		got = append(got, Header{name, value})
+		got = append(got, header{name, value})
 	})
 	if err != nil {
 		t.Errorf("unexpected error %v", err)
 	}
-	if exp := []Header{{":path", "/index.html"}}; !Equal(got, exp) {
+	if exp := []header{{":path", "/index.html"}}; !Equal(got, exp) {
 		t.Errorf("expected %v, got %v", exp, got)
 	}
 }
@@ -40,7 +40,7 @@ func TestRFC9204_DecodingEncoderInstructions(t *testing.T) {
 		if dt.size != 106 {
 			t.Errorf("expected size 106, got %d", dt.size)
 		}
-		exp := []Header{
+		exp := []header{
 			{":authority", "www.example.com"},
 			{":path", "/sample/path"}}
 		if !Equal(dt.headers, exp) {
@@ -57,7 +57,7 @@ func TestRFC9204_DecodingEncoderInstructions(t *testing.T) {
 		if dt.size != 160 {
 			t.Errorf("expected size 160, got %d", dt.size)
 		}
-		exp := []Header{
+		exp := []header{
 			{":authority", "www.example.com"},
 			{":path", "/sample/path"},
 			{"Custom-Key", "custom-value"},
@@ -76,7 +76,7 @@ func TestRFC9204_DecodingEncoderInstructions(t *testing.T) {
 		if dt.size != 217 {
 			t.Errorf("expected size 217, got %d", dt.size)
 		}
-		exp := []Header{
+		exp := []header{
 			{":authority", "www.example.com"},
 			{":path", "/sample/path"},
 			{"Custom-Key", "custom-value"},
@@ -96,7 +96,7 @@ func TestRFC9204_DecodingEncoderInstructions(t *testing.T) {
 		if dt.size != 215 {
 			t.Errorf("expected size 215, got %d", dt.size)
 		}
-		exp := []Header{
+		exp := []header{
 			{":path", "/sample/path"},
 			{"Custom-Key", "custom-value"},
 			{":authority", "www.example.com"},

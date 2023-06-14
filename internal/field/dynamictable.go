@@ -14,7 +14,7 @@ import (
 
 type DT struct {
 	mu           sync.Mutex
-	headers      []Header
+	headers      []header
 	fieldEncoder *Encoder
 	evicted      uint64
 	size         uint64
@@ -26,10 +26,10 @@ func (dt *DT) insertCountLocked() uint64 {
 	return dt.evicted + uint64(len(dt.headers))
 }
 
-func (dt *DT) headerFromRelativePosLocked(rel uint64) (Header, bool) {
+func (dt *DT) headerFromRelativePosLocked(rel uint64) (header, bool) {
 	abs := dt.insertCountLocked() - rel - 1
 	if abs >= uint64(len(dt.headers)) {
-		return Header{}, false
+		return header{}, false
 	}
 	return dt.headers[abs], true
 }
@@ -103,7 +103,7 @@ func (dt *DT) insertLocked(name, value string) bool {
 	}
 	// This addition cannot overflow as dt.size <= dt.capacity - s
 	dt.size += s
-	dt.headers = append(dt.headers, Header{Name: name, Value: value})
+	dt.headers = append(dt.headers, header{Name: name, Value: value})
 	return true
 }
 
@@ -114,7 +114,7 @@ func (dt *DT) appendSnapshot(p []byte) []byte {
 	p = inst.AppendSetDynamicTableCapacity(p, dt.capacity)
 
 	n := make(map[string]int, len(dt.headers))
-	m := make(map[Header]int, len(dt.headers))
+	m := make(map[header]int, len(dt.headers))
 
 	for i, hf := range dt.headers {
 		if j, ok := m[hf]; ok {

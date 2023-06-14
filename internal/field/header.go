@@ -1,11 +1,11 @@
 package field
 
-type Header struct {
+type header struct {
 	Name  string
 	Value string
 }
 
-func (h Header) size() uint64 {
+func (h header) size() uint64 {
 	return headerSize(h.Name, h.Value)
 }
 
