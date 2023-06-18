@@ -3,7 +3,7 @@
 package main
 
 /*
-	This generates various lookup tables for huffman decoding.
+	This generates various lookup tables for huffman encoding & decoding.
 
 	Having a direct lookup for short codes of 13 bits or less, means all but 6
 	visible ASCII characters and space (VCHAR / SP) are decoded with the fast
