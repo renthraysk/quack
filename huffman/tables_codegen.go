@@ -146,34 +146,35 @@ func main() {
 
 	{ // " GMT" preencoded
 		x, n := code(" GMT")
-		fmt.Fprintf(w, `const (
-	gmtCode   = %#08x // " GMT"
-	gmtLength = %d
-)`, x, n)
+		fmt.Fprintln(w, "const (")
+		fmt.Fprintf(w, "\tgmtCode   = %#08x // \" GMT\"\n", x)
+		fmt.Fprintf(w, "\tgmtLength = %d\n", n)
+		fmt.Fprintln(w, ")")
 	}
-	fmt.Fprintln(w)
+
 	fmt.Fprintln(w)
 	fmt.Println(`type code[T uint16 | uint32 | uint64] struct {
 	_      [0]func()
 	code   T
 	length uint8
 }`)
-	fmt.Println()
+	fmt.Fprintln(w)
 
-	fmt.Println("var days = [...]code[uint32] {")
+	fmt.Fprintln(w, "var days = [...]code[uint32] {")
 	for i := 0; i < len(days); i += 4 {
 		x, n := code(days[i : i+4])
-		fmt.Printf("\t{code: %#08x, length: %d}, // %q\n", x, n, days[i:i+4])
+		fmt.Fprintf(w, "\t{code: %#08x, length: %d}, // %q\n", x, n, days[i:i+4])
 	}
-	fmt.Println("}")
-	fmt.Println()
-	fmt.Println("var months = [...]code[uint32] {")
+	fmt.Fprintln(w, "}")
+	fmt.Fprintln(w)
+	
+	fmt.Fprintln(w, "var months = [...]code[uint32] {")
 	for i := 0; i < len(months); i += 5 {
 		x, n := code(months[i : i+5])
-		fmt.Printf("\t{code: %#08x, length: %d}, // %q\n", x, n, months[i:i+5])
+		fmt.Fprintf(w, "\t{code: %#08x, length: %d}, // %q\n", x, n, months[i:i+5])
 	}
-	fmt.Println("}")
-	fmt.Println()
+	fmt.Fprintln(w, "}")
+	fmt.Fprintln(w)
 
 	fmt.Fprintf(w, `const (
 	// decoding constants
