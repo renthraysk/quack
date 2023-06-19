@@ -103,7 +103,7 @@ func (dt *DT) insertLocked(name, value string) bool {
 	}
 	// This addition cannot overflow as dt.size <= dt.capacity - s
 	dt.size += s
-	dt.headers = append(dt.headers, header{Name: name, Value: value})
+	dt.headers = append(dt.headers, header{name: name, value: value})
 	return true
 }
 
@@ -122,13 +122,13 @@ func (dt *DT) appendSnapshot(p []byte) []byte {
 			continue
 		}
 		m[hf] = i
-		if j, ok := n[hf.Name]; ok {
+		if j, ok := n[hf.name]; ok {
 			p = inst.AppendInsertWithNameReference(p, uint64(j), false)
 		} else {
-			n[hf.Name] = i
-			p = inst.AppendInsertWithLiteralName(p, hf.Name)
+			n[hf.name] = i
+			p = inst.AppendInsertWithLiteralName(p, hf.name)
 		}
-		p = inst.AppendStringLiteral(p, hf.Value, true)
+		p = inst.AppendStringLiteral(p, hf.value, true)
 	}
 	return p
 }
@@ -170,13 +170,13 @@ func (dt *DT) decodeNameInsertWithNameReference(p []byte) (string, []byte, error
 		if i >= uint64(len(staticTable)) {
 			return "", p, errors.New("invalid static table index")
 		}
-		return staticTable[i].Name, q, nil
+		return staticTable[i].name, q, nil
 	}
 	h, ok := dt.headerFromRelativePosLocked(i)
 	if !ok {
 		return "", p, errors.New("invalid dynamic table index")
 	}
-	return h.Name, q, nil
+	return h.name, q, nil
 }
 
 func (dt *DT) appendEncoderInstructionLocked(p []byte, name, value string) []byte {
@@ -225,7 +225,7 @@ func (dt *DT) appendEncoderInstructions(p []byte, header map[string][]string) ([
 	// Build a fieldEncoder for when peer acks.
 	nv := make(nameValues, len(dt.headers))
 	for i, hf := range dt.headers {
-		nv[hf.Name] = append(nv[hf.Name], value{value: hf.Value, index: uint64(i)})
+		nv[hf.name] = append(nv[hf.name], value{value: hf.value, index: uint64(i)})
 	}
 
 	return p, newEncoder(nv, base, dt.insertCountLocked()-base, dt.capacity)
@@ -251,7 +251,7 @@ func (dt *DT) DecodeEncoderInstructions(p []byte) error {
 			if !ok {
 				return errors.New("duplicate: non-existant header")
 			}
-			if ok := dt.insertLocked(h.Name, h.Value); !ok {
+			if ok := dt.insertLocked(h.name, h.value); !ok {
 				return errors.New("duplicate: failed to insert")
 			}
 			p = q

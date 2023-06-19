@@ -1,12 +1,12 @@
 package field
 
 type header struct {
-	Name  string
-	Value string
+	name  string
+	value string
 }
 
 func (h header) size() uint64 {
-	return headerSize(h.Name, h.Value)
+	return headerSize(h.name, h.value)
 }
 
 // https://datatracker.ietf.org/doc/html/rfc9204#name-dynamic-table-size

@@ -165,7 +165,7 @@ func (d *Decoder) Decode(p []byte, accept func(string, string)) error {
 				return err
 			}
 			q = r
-			accept(staticTable[index].Name, value)
+			accept(staticTable[index].name, value)
 
 		case 0b1000, 0b1001, 0b1010, 0b1011:
 			// 10XX_XXXX Indexed Field Line in dynamic table
@@ -192,7 +192,7 @@ func (d *Decoder) Decode(p []byte, accept func(string, string)) error {
 				return errStaticIndexOutOfRange
 			}
 			q = r
-			accept(staticTable[index].Name, staticTable[index].Value)
+			accept(staticTable[index].name, staticTable[index].value)
 		}
 	}
 	return nil
