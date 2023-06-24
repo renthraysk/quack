@@ -44,6 +44,7 @@ func newEncoder(nv nameValues, base, insertCount, capacity uint64) *Encoder {
 	}
 }
 
+// https://www.rfc-editor.org/rfc/rfc9114.html#name-request-pseudo-header-field
 func (fe *Encoder) AppendRequest(p []byte, method, scheme, authority, path string, header map[string][]string) []byte {
 	p = fe.appendFieldSectionPrefix(p)
 	// All pseudo-header fields MUST appear in the header section before regular header fields.
@@ -56,6 +57,7 @@ func (fe *Encoder) AppendRequest(p []byte, method, scheme, authority, path strin
 	return p
 }
 
+// https://www.rfc-editor.org/rfc/rfc9114.html#name-response-pseudo-header-fiel
 func (fe *Encoder) AppendResponse(p []byte, statusCode int, header map[string][]string) []byte {
 	p = fe.appendFieldSectionPrefix(p)
 	// All pseudo-header fields MUST appear in the header section before regular header fields.
@@ -69,6 +71,7 @@ func (fe *Encoder) AppendResponse(p []byte, statusCode int, header map[string][]
 	return p
 }
 
+// https://www.rfc-editor.org/rfc/rfc9114.html#name-the-connect-method
 func (fe *Encoder) AppendConnect(p []byte, authority string, header map[string][]string) []byte {
 	p = fe.appendFieldSectionPrefix(p)
 	// All pseudo-header fields MUST appear in the header section before regular header fields.
@@ -81,7 +84,7 @@ func (fe *Encoder) AppendConnect(p []byte, authority string, header map[string][
 
 // https://www.rfc-editor.org/rfc/rfc9204.html#name-encoded-field-section-prefi
 func (fe *Encoder) appendFieldSectionPrefix(p []byte) []byte {
-	if fe == nil || fe.insertCount == 0 {
+	if fe == nil {
 		// Operating with only static table
 		return append(p, 0, 0)
 	}
