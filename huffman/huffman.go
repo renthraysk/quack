@@ -12,7 +12,7 @@ const (
 	maxDecodedLength = 1 << 20 // 1MB
 
 	// maxEncodedLength the maximum length of input we should attempt to decode
-	// Best compression ratio is 5 (minCodeLength) bits of input results in
+	// Best decompression ratio is 5 (minCodeLength) bits of input results in
 	// 8 bits of output.
 	maxEncodedLength = minCodeLength * maxDecodedLength / 8
 )
