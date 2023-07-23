@@ -94,6 +94,7 @@ func isFieldContent(c byte) bool {
 
 // https://www.rfc-editor.org/rfc/rfc9110#section-5.5
 func IsValueValid[T []byte | string](v T) bool {
+	// An empty value is valid
 	if len(v) <= 0 {
 		return false
 	}
@@ -127,6 +128,25 @@ func AppendLower(p []byte, s string) []byte {
 	return p
 }
 
+// Lower return the lower cased representation of string s.
+func Lower(s string) string {
+	// inlines
+	var i int
+	for i < len(s) && !isUpper(s[i]) {
+		i++
+	}
+	if i >= len(s) {
+		return s
+	}
+	b := append(make([]byte, 0, 32), s...)
+	for ; i < len(b); i++ {
+		if isUpper(b[i]) {
+			b[i] |= 0x20
+		}
+	}
+	return string(b)
+}
+
 func ToCanonical(b []byte) string {
 	nextA := 'a'
 	for i, c := range b {
@@ -139,16 +159,4 @@ func ToCanonical(b []byte) string {
 		}
 	}
 	return string(b)
-}
-
-func EqualInsensitive(a, b string) bool {
-	i := 0
-
-	if len(a) != len(b) {
-		return false
-	}
-	for i < len(a) && ToLower(a[i]) == ToLower(b[i]) {
-		i++
-	}
-	return i >= len(a)
 }
