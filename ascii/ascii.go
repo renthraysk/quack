@@ -96,7 +96,7 @@ func isFieldContent(c byte) bool {
 func IsValueValid[T []byte | string](v T) bool {
 	// An empty value is valid
 	if len(v) <= 0 {
-		return false
+		return true
 	}
 	// Has to start with a field-vchar
 	if !isFieldVChar(v[0]) {
