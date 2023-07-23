@@ -36,25 +36,26 @@ func allEqual[T comparable](s []T, one T) bool {
 // https://www.rfc-editor.org/rfc/rfc9114.html#name-request-pseudo-header-field
 func (e *Encoder) AppendRequest(p []byte, method, scheme, authority, path string, header map[string][]string) ([]byte, error) {
 
-	if ascii.EqualInsensitive(scheme, "https") || ascii.EqualInsensitive(scheme, "http") {
-
-		// Clients that generate HTTP/3 requests directly SHOULD use the
-		// :authority pseudo-header field instead of the Host header field.
-		if authority == "" {
-			return p, errors.New("empty :authority")
-		} else if hosts, ok := header["Host"]; ok && !allEqual(hosts, authority) {
-			return p, errors.New(":authority and Host header are inconsistent")
-		}
-
-		// This pseudo-header field MUST NOT be empty for "http" or "https" URIs;
-		// "http" or "https" URIs that do not contain a path component MUST
-		// include a value of / (ASCII 0x2f).
-		if path == "" {
-			path = "/"
-			// An OPTIONS request that does not include a path component includes
-			// the value * (ASCII 0x2a) for the :path pseudo-header field
-			if method == "OPTIONS" {
-				path = "*"
+	if len(scheme) <= len("https") {
+		switch ascii.Lower(scheme) {
+		case "https", "http":
+			// Clients that generate HTTP/3 requests directly SHOULD use the
+			// :authority pseudo-header field instead of the Host header field.
+			if authority == "" {
+				return p, errors.New("empty :authority")
+			} else if hosts, ok := header["Host"]; ok && !allEqual(hosts, authority) {
+				return p, errors.New(":authority and Host header are inconsistent")
+			}
+			// This pseudo-header field MUST NOT be empty for "http" or "https" URIs;
+			// "http" or "https" URIs that do not contain a path component MUST
+			// include a value of / (ASCII 0x2f).
+			if path == "" {
+				path = "/"
+				// An OPTIONS request that does not include a path component includes
+				// the value * (ASCII 0x2a) for the :path pseudo-header field
+				if method == "OPTIONS" {
+					path = "*"
+				}
 			}
 		}
 	}
