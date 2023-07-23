@@ -137,7 +137,7 @@ func appendDate(p []byte, t time.Time) []byte {
 	// RFC1123 time length is less 0x7F so only need a single byte for length
 	i := len(p)
 	p = append(p, 0)
-	p = huffman.AppendRFC1123Time(p, t)
+	p = huffman.AppendHttpTime(p, t)
 	p[i] = H | uint8(len(p)-i-1)
 	return p
 }

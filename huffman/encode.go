@@ -86,9 +86,9 @@ func AppendInt(p []byte, v int64) []byte {
 	return appendFinal(p, x, n)
 }
 
-// AppendRFC1123Time appends the huffman encoding of time.Time t in RFC1123
+// AppendHttpTime appends the huffman encoding of time.Time t in RFC1123
 // format to p returning the result.
-func AppendRFC1123Time(p []byte, t time.Time) []byte {
+func AppendHttpTime(p []byte, t time.Time) []byte {
 	u := t.UTC()
 	year, month, day := u.Date()
 	y := year / 100

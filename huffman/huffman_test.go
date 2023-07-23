@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math"
+	"net/http"
 	"strconv"
 	"testing"
 	"time"
@@ -158,7 +159,7 @@ func TestEncodeStringLower(t *testing.T) {
 	}
 }
 
-func TestEncodeRFC1123Time(t *testing.T) {
+func TestEncodeHttpTime(t *testing.T) {
 
 	times := []struct {
 		time    string
@@ -173,7 +174,7 @@ func TestEncodeRFC1123Time(t *testing.T) {
 				t.Fatalf("failed to parse %q", c.time)
 			}
 			expected := dehex(t, c.encoded)
-			got := AppendRFC1123Time(nil, tm)
+			got := AppendHttpTime(nil, tm)
 			if !bytes.Equal(got, expected) {
 				t.Errorf("expected %x, got %x", c.encoded, got)
 			}
@@ -186,13 +187,13 @@ func TestEncodeRFC1123Time(t *testing.T) {
 	}
 }
 
-func BenchmarkAppendRFC1123Time(b *testing.B) {
+func BenchmarkAppendHttpTime(b *testing.B) {
 	now := time.Now()
 	var buf [32]byte
 
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
-		_ = AppendRFC1123Time(buf[:0], now)
+		_ = AppendHttpTime(buf[:0], now)
 	}
 }
 
@@ -242,8 +243,8 @@ func FuzzTime(f *testing.F) {
 		if expected.Year() > 9999 {
 			return
 		}
-		encoded := AppendRFC1123Time(nil, expected)
-		decoded, err := Decode(nil, encoded)
+		encoded := AppendHttpTime(nil, expected)
+		decoded, err := Decode(make([]byte, 0, len(http.TimeFormat)), encoded)
 		if err != nil {
 			t.Errorf("decode error: %v", err)
 		}
