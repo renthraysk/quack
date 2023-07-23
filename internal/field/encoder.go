@@ -63,9 +63,12 @@ func (fe *Encoder) AppendResponse(p []byte, statusCode int, header map[string][]
 	// All pseudo-header fields MUST appear in the header section before regular header fields.
 	// https://www.rfc-editor.org/rfc/rfc9114.html#name-http-control-data
 	p = appendStatus(p, statusCode)
-	// Automagic the Date header if absent
-	if _, ok := header["Date"]; !ok {
-		p = appendDate(p, time.Now())
+
+	if statusCode <= 100 || statusCode >= 200 {
+		// Automagic the Date header if absent
+		if _, ok := header["Date"]; !ok {
+			p = appendDate(p, time.Now())
+		}
 	}
 	p = fe.appendFieldLines(p, header)
 	return p
