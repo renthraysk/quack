@@ -47,10 +47,14 @@ func Append(p []byte, x uint64, mask, prefix byte) []byte {
 	if x < uint64(mask) {
 		return append(p, prefix|byte(x))
 	}
-	p = append(p, prefix|mask)
 	x -= uint64(mask)
-	for x >= 0x80 {
-		p = append(p, 0x80|byte(x))
+	if x <= 0x7F {
+		return append(p, prefix|mask, byte(x))
+	}
+	p = append(p, prefix|mask, byte(x)|0x80)
+	x >>= 7
+	for x > 0x7F {
+		p = append(p, byte(x)|0x80)
 		x >>= 7
 	}
 	return append(p, byte(x))
