@@ -1,3 +1,0 @@
-[submodule "internal/qif/qifs"]
-	path = internal/qif/qifs
-	url = https://github.com/qpackers/qifs
