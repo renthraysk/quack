@@ -4,6 +4,7 @@ import (
 	"math/bits"
 	"time"
 
+	"github.com/renthraysk/quack/huffman"
 	"github.com/renthraysk/quack/internal/inst"
 	"github.com/renthraysk/quack/varint"
 )
@@ -155,3 +156,134 @@ func (fe *Encoder) appendFieldLine(p []byte, name, value string) []byte {
 }
 
 /* */
+
+// The pseudo headers
+
+// appendAuthority appends an :authority pseudo header field to p
+func appendAuthority(p []byte, authority string) []byte {
+	if authority == "" {
+		return inst.AppendIndexedLine(p, 0, true)
+	}
+	p = inst.AppendNamedReference(p, 0, false, true)
+	return inst.AppendStringLiteral(p, authority, true)
+}
+
+// appendPath appends a :path pseudo header field to p
+func appendPath(p []byte, path string) []byte {
+	if path == "/" {
+		return inst.AppendIndexedLine(p, 1, true)
+	}
+	p = inst.AppendNamedReference(p, 1, false, true)
+	return inst.AppendStringLiteral(p, path, true)
+}
+
+// appendStatus appends a :status pseudo header field to p
+func appendStatus(p []byte, statusCode int) []byte {
+	switch statusCode {
+	case 100:
+		return inst.AppendIndexedLine(p, 63, true)
+	case 103:
+		return inst.AppendIndexedLine(p, 24, true)
+	case 200:
+		return inst.AppendIndexedLine(p, 25, true)
+	case 204:
+		return inst.AppendIndexedLine(p, 64, true)
+	case 206:
+		return inst.AppendIndexedLine(p, 65, true)
+	case 302:
+		return inst.AppendIndexedLine(p, 66, true)
+	case 304:
+		return inst.AppendIndexedLine(p, 26, true)
+	case 400:
+		return inst.AppendIndexedLine(p, 67, true)
+	case 403:
+		return inst.AppendIndexedLine(p, 68, true)
+	case 404:
+		return inst.AppendIndexedLine(p, 27, true)
+	case 421:
+		return inst.AppendIndexedLine(p, 69, true)
+	case 425:
+		return inst.AppendIndexedLine(p, 70, true)
+	case 500:
+		return inst.AppendIndexedLine(p, 71, true)
+	case 503:
+		return inst.AppendIndexedLine(p, 28, true)
+	}
+	p = inst.AppendNamedReference(p, 24, false, true)
+	return appendInt(p, int64(statusCode))
+}
+
+// appendInt appends the QPACK string literal representation of int64 i.
+func appendInt(p []byte, i int64) []byte {
+	// H HuffmanEncoded
+	const H = 0b1000_0000
+
+	if -9 <= i && i <= 99 {
+		// No savings from huffman encoding 2 characters.
+		if i < 0 {
+			return append(p, 2, '-', byte('0'-i))
+		}
+		if i <= 9 {
+			return append(p, 1, byte(i)+'0')
+		}
+		j := i / 10
+		return append(p, 2, byte(j)+'0', byte(i-10*j)+'0')
+	}
+
+	j := len(p)
+	p = append(p, 0)
+	p = huffman.AppendInt(p, i)
+	p[j] = H | uint8(len(p)-j-1)
+	return p
+}
+
+// appendMethod appends a :method pseudo header field to p
+func appendMethod(p []byte, method string) []byte {
+	switch method {
+	case "CONNECT":
+		return inst.AppendIndexedLine(p, 15, true)
+	case "DELETE":
+		return inst.AppendIndexedLine(p, 16, true)
+	case "GET":
+		return inst.AppendIndexedLine(p, 17, true)
+	case "HEAD":
+		return inst.AppendIndexedLine(p, 18, true)
+	case "OPTIONS":
+		return inst.AppendIndexedLine(p, 19, true)
+	case "POST":
+		return inst.AppendIndexedLine(p, 20, true)
+	case "PUT":
+		return inst.AppendIndexedLine(p, 21, true)
+	}
+	p = inst.AppendNamedReference(p, 15, false, true)
+	return inst.AppendStringLiteral(p, method, true)
+}
+
+// appendScheme appends a :scheme pseudo header field to p
+func appendScheme(p []byte, scheme string) []byte {
+	switch scheme {
+	case "http":
+		return inst.AppendIndexedLine(p, 22, true)
+	case "https":
+		return inst.AppendIndexedLine(p, 23, true)
+	}
+	p = inst.AppendNamedReference(p, 22, false, true)
+	return inst.AppendStringLiteral(p, scheme, true)
+}
+
+// Regular headers
+
+// appendDate appends a Date header field with time t.
+func appendDate(p []byte, t time.Time) []byte {
+	const StaticTableIndex = 6
+
+	const H = 0b1000_0000
+
+	p = inst.AppendNamedReference(p, StaticTableIndex, false, true)
+	// RFC1123 time length is less 0x7F so only need a single byte for length
+	i := len(p)
+	p = append(p, 0)
+	p = huffman.AppendHttpTime(p, t)
+	p[i] = H | uint8(len(p)-i-1)
+	return p
+}
