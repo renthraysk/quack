@@ -16,10 +16,10 @@ func AppendStringLiteral(p []byte, s string, shouldHuffman bool) []byte {
 	n := uint64(len(s))
 	if n > 2 && shouldHuffman {
 		if h := huffman.EncodeLength(s); h < n {
-			p = varint.Append(p, h, M, H)
+			p = varint.Append(p, H, M, h)
 			return huffman.AppendString(p, s)
 		}
 	}
-	p = varint.Append(p, n, M, 0)
+	p = varint.Append(p, M, 0, n)
 	return append(p, s...)
 }

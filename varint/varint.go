@@ -43,7 +43,7 @@ func Read(p []byte, mask uint8) (uint64, []byte, error) {
 	return 0, p, errVarintOverflow
 }
 
-func Append(p []byte, x uint64, mask, prefix byte) []byte {
+func Append(p []byte, prefix, mask byte, x uint64) []byte {
 	if x < uint64(mask) {
 		return append(p, prefix|byte(x))
 	}

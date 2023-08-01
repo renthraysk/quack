@@ -16,7 +16,7 @@ func AppendIndexedLine(p []byte, i uint64, isStatic bool) []byte {
 		T = 0b0100_0000
 		M = 0b0011_1111
 	)
-	return varint.Append(p, i, M, P|t(isStatic, T))
+	return varint.Append(p, P|t(isStatic, T), M, i)
 }
 
 // https://www.rfc-editor.org/rfc/rfc9204.html#name-indexed-field-line-with-pos
@@ -24,7 +24,7 @@ func AppendIndexedLinePostBase(p []byte, i uint64) []byte {
 	const P = 0b0001_0000
 	const M = 0b0000_1111
 
-	return varint.Append(p, i, M, P)
+	return varint.Append(p, P, M, i)
 }
 
 // https://www.rfc-editor.org/rfc/rfc9204.html#name-literal-field-line-with-nam
@@ -35,7 +35,7 @@ func AppendNamedReference(p []byte, i uint64, neverIndex, isStatic bool) []byte 
 		T = 0b0001_0000
 		M = 0b0000_1111
 	)
-	return varint.Append(p, i, M, P|t(neverIndex, N)|t(isStatic, T))
+	return varint.Append(p, P|t(neverIndex, N)|t(isStatic, T), M, i)
 }
 
 // https://www.rfc-editor.org/rfc/rfc9204.html#name-literal-field-line-with-lit
@@ -48,10 +48,10 @@ func AppendLiteralName(p []byte, name string, neverIndex bool) []byte {
 	)
 	n := uint64(len(name))
 	if h := huffman.EncodeLengthLower(name); h < n {
-		p = varint.Append(p, h, M, P|t(neverIndex, N)|H)
+		p = varint.Append(p, P|t(neverIndex, N)|H, M, h)
 		return huffman.AppendStringLower(p, name)
 	}
-	p = varint.Append(p, n, M, P|t(neverIndex, N))
+	p = varint.Append(p, P|t(neverIndex, N), M, n)
 	return ascii.AppendLower(p, name)
 }
 

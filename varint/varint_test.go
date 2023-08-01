@@ -25,12 +25,12 @@ func TestReadVarint(t *testing.T) {
 		{"zero-7", []byte{0x00}, 0x7F, 0, nil},
 		{"one-1", []byte{0x01, 0x00}, 0x01, 1, nil},
 
-		{"maxint62-1", Append(nil, maxVarint62, 1, 0), 1, maxVarint62, nil},
-		{"maxint62-7", Append(nil, maxVarint62, 0x7F, 0), 0x7F, maxVarint62, nil},
+		{"maxint62-1", Append(nil, 0, 1, maxVarint62), 1, maxVarint62, nil},
+		{"maxint62-7", Append(nil, 0, 0x7F, maxVarint62), 0x7F, maxVarint62, nil},
 
-		{"overflow-1", Append(nil, maxVarint62+1, 1, 0), 1, 0, errVarintOverflow},
-		{"overflow-7", Append(nil, maxVarint62+1, 0x7F, 0), 0x7F, 0, errVarintOverflow},
-		{"overflow-8", Append(nil, maxVarint62+1, 0xFF, 0), 0xFF, 0, errVarintOverflow},
+		{"overflow-1", Append(nil, 0, 1, maxVarint62+1), 1, 0, errVarintOverflow},
+		{"overflow-7", Append(nil, 0, 0x7F, maxVarint62+1), 0x7F, 0, errVarintOverflow},
+		{"overflow-8", Append(nil, 0, 0xFF, maxVarint62+1), 0xFF, 0, errVarintOverflow},
 
 		{"short", bad[:9], 0x7F, 0, errUnexpectedEnd},
 		{"overflow", bad[:10], 0x7F, 0, errVarintOverflow},

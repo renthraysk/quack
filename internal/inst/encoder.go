@@ -12,7 +12,7 @@ func AppendSetDynamicTableCapacity(p []byte, capacity uint64) []byte {
 		P = 0b0010_0000
 		M = 0b0001_1111
 	)
-	return varint.Append(p, capacity, M, P)
+	return varint.Append(p, P, M, capacity)
 }
 
 // https://www.rfc-editor.org/rfc/rfc9204.html#name-insert-with-name-reference
@@ -22,7 +22,7 @@ func AppendInsertWithNameReference(p []byte, i uint64, isStatic bool) []byte {
 		T = 0b0100_0000
 		M = 0b0011_1111
 	)
-	return varint.Append(p, i, M, P|t(isStatic, T))
+	return varint.Append(p, P|t(isStatic, T), M, i)
 }
 
 // https://www.rfc-editor.org/rfc/rfc9204.html#name-insert-with-literal-name
@@ -35,10 +35,10 @@ func AppendInsertWithLiteralName(p []byte, name string) []byte {
 
 	n := uint64(len(name))
 	if h := huffman.EncodeLengthLower(name); h < n {
-		p = varint.Append(p, h, M, P|H)
+		p = varint.Append(p, P|H, M, h)
 		return huffman.AppendStringLower(p, name)
 	}
-	p = varint.Append(p, n, M, P)
+	p = varint.Append(p, P, M, n)
 	return ascii.AppendLower(p, name)
 }
 
@@ -48,7 +48,7 @@ func AppendDuplicate(p []byte, i uint64) []byte {
 		P = 0b0000_0000
 		M = 0b0001_1111
 	)
-	return varint.Append(p, i, M, P)
+	return varint.Append(p, P, M, i)
 }
 
 //

@@ -95,7 +95,7 @@ func (fe *Encoder) appendFieldSectionPrefix(p []byte) []byte {
 
 	// https://www.rfc-editor.org/rfc/rfc9204.html#name-required-insert-count
 	maxEntries := fe.capacity / 32
-	p = varint.Append(p, (fe.insertCount%(2*maxEntries))+1, 0xFF, 0)
+	p = varint.Append(p, 0, 0xFF, (fe.insertCount%(2*maxEntries))+1)
 
 	// https://www.rfc-editor.org/rfc/rfc9204.html#name-base
 	deltaBase, sign := bits.Sub64(fe.base, fe.insertCount, 0)
@@ -103,7 +103,7 @@ func (fe *Encoder) appendFieldSectionPrefix(p []byte) []byte {
 		deltaBase = fe.insertCount - fe.base - 1
 		sign = 0x80
 	}
-	return varint.Append(p, deltaBase, 0x7F, byte(sign))
+	return varint.Append(p, byte(sign), 0x7F, deltaBase)
 }
 
 func (fe *Encoder) lookup(name, value string) (index uint64, isStatic bool, m match) {
