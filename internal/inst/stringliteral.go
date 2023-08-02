@@ -20,6 +20,6 @@ func AppendStringLiteral(p []byte, s string, shouldHuffman bool) []byte {
 			return huffman.AppendString(p, s)
 		}
 	}
-	p = varint.Append(p, M, 0, n)
+	p = varint.Append(p, 0, M, n)
 	return append(p, s...)
 }

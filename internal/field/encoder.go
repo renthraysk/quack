@@ -143,7 +143,7 @@ func (fe *Encoder) appendFieldLine(p []byte, name, value string) []byte {
 	switch i, isStatic, m := fe.lookup(name, value); m {
 	case matchNameValue:
 		if isStatic {
-			return inst.AppendIndexedLine(p, i, true)
+			return inst.AppendStaticIndexReference(p, i)
 		}
 		return inst.AppendIndexedLinePostBase(p, i)
 
@@ -162,7 +162,7 @@ func (fe *Encoder) appendFieldLine(p []byte, name, value string) []byte {
 // appendAuthority appends an :authority pseudo header field to p
 func appendAuthority(p []byte, authority string) []byte {
 	if authority == "" {
-		return inst.AppendIndexedLine(p, 0, true)
+		return inst.AppendStaticIndexReference(p, 0)
 	}
 	p = inst.AppendNamedReference(p, 0, false, true)
 	return inst.AppendStringLiteral(p, authority, true)
@@ -171,7 +171,7 @@ func appendAuthority(p []byte, authority string) []byte {
 // appendPath appends a :path pseudo header field to p
 func appendPath(p []byte, path string) []byte {
 	if path == "/" {
-		return inst.AppendIndexedLine(p, 1, true)
+		return inst.AppendStaticIndexReference(p, 1)
 	}
 	p = inst.AppendNamedReference(p, 1, false, true)
 	return inst.AppendStringLiteral(p, path, true)
@@ -181,33 +181,33 @@ func appendPath(p []byte, path string) []byte {
 func appendStatus(p []byte, statusCode int) []byte {
 	switch statusCode {
 	case 100:
-		return inst.AppendIndexedLine(p, 63, true)
+		return inst.AppendStaticIndexReference(p, 63)
 	case 103:
-		return inst.AppendIndexedLine(p, 24, true)
+		return inst.AppendStaticIndexReference(p, 24)
 	case 200:
-		return inst.AppendIndexedLine(p, 25, true)
+		return inst.AppendStaticIndexReference(p, 25)
 	case 204:
-		return inst.AppendIndexedLine(p, 64, true)
+		return inst.AppendStaticIndexReference(p, 64)
 	case 206:
-		return inst.AppendIndexedLine(p, 65, true)
+		return inst.AppendStaticIndexReference(p, 65)
 	case 302:
-		return inst.AppendIndexedLine(p, 66, true)
+		return inst.AppendStaticIndexReference(p, 66)
 	case 304:
-		return inst.AppendIndexedLine(p, 26, true)
+		return inst.AppendStaticIndexReference(p, 26)
 	case 400:
-		return inst.AppendIndexedLine(p, 67, true)
+		return inst.AppendStaticIndexReference(p, 67)
 	case 403:
-		return inst.AppendIndexedLine(p, 68, true)
+		return inst.AppendStaticIndexReference(p, 68)
 	case 404:
-		return inst.AppendIndexedLine(p, 27, true)
+		return inst.AppendStaticIndexReference(p, 27)
 	case 421:
-		return inst.AppendIndexedLine(p, 69, true)
+		return inst.AppendStaticIndexReference(p, 69)
 	case 425:
-		return inst.AppendIndexedLine(p, 70, true)
+		return inst.AppendStaticIndexReference(p, 70)
 	case 500:
-		return inst.AppendIndexedLine(p, 71, true)
+		return inst.AppendStaticIndexReference(p, 71)
 	case 503:
-		return inst.AppendIndexedLine(p, 28, true)
+		return inst.AppendStaticIndexReference(p, 28)
 	}
 	p = inst.AppendNamedReference(p, 24, false, true)
 	return appendInt(p, int64(statusCode))
@@ -241,19 +241,19 @@ func appendInt(p []byte, i int64) []byte {
 func appendMethod(p []byte, method string) []byte {
 	switch method {
 	case "CONNECT":
-		return inst.AppendIndexedLine(p, 15, true)
+		return inst.AppendStaticIndexReference(p, 15)
 	case "DELETE":
-		return inst.AppendIndexedLine(p, 16, true)
+		return inst.AppendStaticIndexReference(p, 16)
 	case "GET":
-		return inst.AppendIndexedLine(p, 17, true)
+		return inst.AppendStaticIndexReference(p, 17)
 	case "HEAD":
-		return inst.AppendIndexedLine(p, 18, true)
+		return inst.AppendStaticIndexReference(p, 18)
 	case "OPTIONS":
-		return inst.AppendIndexedLine(p, 19, true)
+		return inst.AppendStaticIndexReference(p, 19)
 	case "POST":
-		return inst.AppendIndexedLine(p, 20, true)
+		return inst.AppendStaticIndexReference(p, 20)
 	case "PUT":
-		return inst.AppendIndexedLine(p, 21, true)
+		return inst.AppendStaticIndexReference(p, 21)
 	}
 	p = inst.AppendNamedReference(p, 15, false, true)
 	return inst.AppendStringLiteral(p, method, true)
@@ -263,9 +263,9 @@ func appendMethod(p []byte, method string) []byte {
 func appendScheme(p []byte, scheme string) []byte {
 	switch scheme {
 	case "http":
-		return inst.AppendIndexedLine(p, 22, true)
+		return inst.AppendStaticIndexReference(p, 22)
 	case "https":
-		return inst.AppendIndexedLine(p, 23, true)
+		return inst.AppendStaticIndexReference(p, 23)
 	}
 	p = inst.AppendNamedReference(p, 22, false, true)
 	return inst.AppendStringLiteral(p, scheme, true)

@@ -10,13 +10,13 @@ import (
 // https://www.rfc-editor.org/rfc/rfc9204.html#name-field-line-representations
 
 // https://www.rfc-editor.org/rfc/rfc9204.html#name-indexed-field-line
-func AppendIndexedLine(p []byte, i uint64, isStatic bool) []byte {
+func AppendStaticIndexReference(p []byte, i uint64) []byte {
 	const (
 		P = 0b1000_0000
 		T = 0b0100_0000
 		M = 0b0011_1111
 	)
-	return varint.Append(p, P|t(isStatic, T), M, i)
+	return varint.Append(p, P|T, M, i)
 }
 
 // https://www.rfc-editor.org/rfc/rfc9204.html#name-indexed-field-line-with-pos
