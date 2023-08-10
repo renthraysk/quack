@@ -168,12 +168,9 @@ func appendFinal(p []byte, x uint64, n uint) []byte {
 	case 1:
 		return append(p, byte(x))
 	case 2:
-		y := uint16(x)
-		return append(p, byte(y>>8), byte(y))
+		return append(p, byte(x>>8), byte(x))
 	case 3:
-		y := uint16(x >> 8)
-		return append(p, byte(y>>8), byte(y), byte(x))
+		return append(p, byte(x>>16), byte(x>>8), byte(x))
 	}
-	y := uint32(x)
-	return append(p, byte(y>>24), byte(y>>16), byte(y>>8), byte(y))
+	return append(p, byte(x>>24), byte(x>>16), byte(x>>8), byte(x))
 }
