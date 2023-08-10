@@ -84,6 +84,7 @@ func BenchmarkDecode(b *testing.B) {
 		Decode(buf[:0], in)
 	}
 }
+
 func TestEncodeInt(t *testing.T) {
 
 	tests := []struct {
