@@ -1,6 +1,7 @@
 package huffman
 
 import (
+	"math/bits"
 	"time"
 
 	"github.com/renthraysk/quack/ascii"
@@ -67,11 +68,10 @@ func AppendInt(p []byte, v int64) []byte {
 		n = uint(codeLengths['-'])
 	}
 	i := len(a)
-	for u >= 100 {
-		w := u / 100
+	for v := uint64(0); u >= 100; {
+		u, v = bits.Div64(0, u, 100)
 		i--
-		a[i] = uint8(u - w*100)
-		u = w
+		a[i] = uint8(v)
 	}
 	// u < 100
 	switch {
