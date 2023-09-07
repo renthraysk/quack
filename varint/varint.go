@@ -7,7 +7,7 @@ const (
 	maxVarint62Len = (62 + 6) / 7
 )
 
-var errUnexpectedEnd = errors.New("unexpected end")
+var errUnexpectedEnd = errors.New("quack: unexpected end")
 var errVarintOverflow = errors.New("quack: varint overflow")
 
 func Read(p []byte, mask uint8) (uint64, []byte, error) {
@@ -22,10 +22,7 @@ func Read(p []byte, mask uint8) (uint64, []byte, error) {
 
 	// MaxVarint62Len (9) bytes (9*7, 63 bits) cannot overflow a uint64, even
 	// with x possibly being 0xFF from the byte above.
-	if len(q) > maxVarint62Len {
-		q = q[:maxVarint62Len]
-	}
-	for i, b := range q {
+	for i, b := range q[:min(len(q), maxVarint62Len)] {
 		x += uint64(b&0x7F) << s
 		s += 7
 		if b < 0x80 {
