@@ -4,7 +4,7 @@ import "github.com/renthraysk/quack/varint"
 
 // Decoder instructions
 
-// https://www.rfc-editor.org/rfc/rfc9204.html#name-section-acknowledgment
+// AppendSectionAcknowledgement https://www.rfc-editor.org/rfc/rfc9204.html#name-section-acknowledgment
 func AppendSectionAcknowledgement(p []byte, streamID uint64) []byte {
 	const (
 		P = 0b1000_0000
@@ -13,7 +13,7 @@ func AppendSectionAcknowledgement(p []byte, streamID uint64) []byte {
 	return varint.Append(p, P, M, streamID)
 }
 
-// https://www.rfc-editor.org/rfc/rfc9204.html#name-stream-cancellation
+// AppendStreamCancellation https://www.rfc-editor.org/rfc/rfc9204.html#name-stream-cancellation
 func AppendStreamCancellation(p []byte, streamID uint64) []byte {
 	const (
 		P = 0b0100_0000
@@ -22,7 +22,7 @@ func AppendStreamCancellation(p []byte, streamID uint64) []byte {
 	return varint.Append(p, P, M, streamID)
 }
 
-// https://www.rfc-editor.org/rfc/rfc9204.html#name-insert-count-increment
+// AppendInsertCountIncrement https://www.rfc-editor.org/rfc/rfc9204.html#name-insert-count-increment
 func AppendInsertCountIncrement(p []byte, increment uint64) []byte {
 	const (
 		P = 0b0000_0000

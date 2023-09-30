@@ -9,7 +9,7 @@ import (
 // Field Line Representations
 // https://www.rfc-editor.org/rfc/rfc9204.html#name-field-line-representations
 
-// https://www.rfc-editor.org/rfc/rfc9204.html#name-indexed-field-line
+// AppendStaticIndexReference https://www.rfc-editor.org/rfc/rfc9204.html#name-indexed-field-line
 func AppendStaticIndexReference(p []byte, i uint64) []byte {
 	const (
 		P = 0b1000_0000
@@ -19,7 +19,7 @@ func AppendStaticIndexReference(p []byte, i uint64) []byte {
 	return varint.Append(p, P|T, M, i)
 }
 
-// https://www.rfc-editor.org/rfc/rfc9204.html#name-indexed-field-line-with-pos
+// AppendIndexedLinePostBase https://www.rfc-editor.org/rfc/rfc9204.html#name-indexed-field-line-with-pos
 func AppendIndexedLinePostBase(p []byte, i uint64) []byte {
 	const P = 0b0001_0000
 	const M = 0b0000_1111
@@ -27,7 +27,7 @@ func AppendIndexedLinePostBase(p []byte, i uint64) []byte {
 	return varint.Append(p, P, M, i)
 }
 
-// https://www.rfc-editor.org/rfc/rfc9204.html#name-literal-field-line-with-nam
+// AppendNamedReference https://www.rfc-editor.org/rfc/rfc9204.html#name-literal-field-line-with-nam
 func AppendNamedReference(p []byte, i uint64, neverIndex, isStatic bool) []byte {
 	const (
 		P = 0b0100_0000
@@ -38,7 +38,7 @@ func AppendNamedReference(p []byte, i uint64, neverIndex, isStatic bool) []byte 
 	return varint.Append(p, P|t(neverIndex, N)|t(isStatic, T), M, i)
 }
 
-// https://www.rfc-editor.org/rfc/rfc9204.html#name-literal-field-line-with-lit
+// AppendLiteralName https://www.rfc-editor.org/rfc/rfc9204.html#name-literal-field-line-with-lit
 func AppendLiteralName(p []byte, name string, neverIndex bool) []byte {
 	const (
 		P = 0b0010_0000

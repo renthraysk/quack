@@ -6,7 +6,7 @@ import (
 	"github.com/renthraysk/quack/varint"
 )
 
-// https://www.rfc-editor.org/rfc/rfc9204.html#name-set-dynamic-table-capacity
+// AppendSetDynamicTableCapacity https://www.rfc-editor.org/rfc/rfc9204.html#name-set-dynamic-table-capacity
 func AppendSetDynamicTableCapacity(p []byte, capacity uint64) []byte {
 	const (
 		P = 0b0010_0000
@@ -15,7 +15,7 @@ func AppendSetDynamicTableCapacity(p []byte, capacity uint64) []byte {
 	return varint.Append(p, P, M, capacity)
 }
 
-// https://www.rfc-editor.org/rfc/rfc9204.html#name-insert-with-name-reference
+// AppendInsertWithNameReference https://www.rfc-editor.org/rfc/rfc9204.html#name-insert-with-name-reference
 func AppendInsertWithNameReference(p []byte, i uint64, isStatic bool) []byte {
 	const (
 		P = 0b1000_0000
@@ -25,7 +25,7 @@ func AppendInsertWithNameReference(p []byte, i uint64, isStatic bool) []byte {
 	return varint.Append(p, P|t(isStatic, T), M, i)
 }
 
-// https://www.rfc-editor.org/rfc/rfc9204.html#name-insert-with-literal-name
+// AppendInsertWithLiteralName https://www.rfc-editor.org/rfc/rfc9204.html#name-insert-with-literal-name
 func AppendInsertWithLiteralName(p []byte, name string) []byte {
 	const (
 		P = 0b0100_0000
@@ -42,7 +42,7 @@ func AppendInsertWithLiteralName(p []byte, name string) []byte {
 	return ascii.AppendLower(p, name)
 }
 
-// https://www.rfc-editor.org/rfc/rfc9204.html#name-duplicate
+// AppendDuplicate https://www.rfc-editor.org/rfc/rfc9204.html#name-duplicate
 func AppendDuplicate(p []byte, i uint64) []byte {
 	const (
 		P = 0b0000_0000
@@ -50,5 +50,3 @@ func AppendDuplicate(p []byte, i uint64) []byte {
 	)
 	return varint.Append(p, P, M, i)
 }
-
-//
