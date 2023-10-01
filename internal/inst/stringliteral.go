@@ -9,8 +9,8 @@ import (
 // https://www.rfc-editor.org/rfc/rfc9204.html#name-string-literals
 func AppendStringLiteral(p []byte, s string, shouldHuffman bool) []byte {
 	const (
-		H = 0b1000_0000
-		M = 0b0111_1111
+		H = 0b1000_0000 // Huffman Encoded
+		M = 0b0111_1111 // Mask
 	)
 
 	n := uint64(len(s))

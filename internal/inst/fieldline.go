@@ -12,17 +12,17 @@ import (
 // AppendStaticIndexReference https://www.rfc-editor.org/rfc/rfc9204.html#name-indexed-field-line
 func AppendStaticIndexReference(p []byte, i uint64) []byte {
 	const (
-		P = 0b1000_0000
-		T = 0b0100_0000
-		M = 0b0011_1111
+		P = 0b1000_0000 // Prefix
+		T = 0b0100_0000 // Static Table
+		M = 0b0011_1111 // Mask
 	)
 	return varint.Append(p, P|T, M, i)
 }
 
 // AppendIndexedLinePostBase https://www.rfc-editor.org/rfc/rfc9204.html#name-indexed-field-line-with-pos
 func AppendIndexedLinePostBase(p []byte, i uint64) []byte {
-	const P = 0b0001_0000
-	const M = 0b0000_1111
+	const P = 0b0001_0000 // Prefix
+	const M = 0b0000_1111 // Mask
 
 	return varint.Append(p, P, M, i)
 }
@@ -30,10 +30,10 @@ func AppendIndexedLinePostBase(p []byte, i uint64) []byte {
 // AppendNamedReference https://www.rfc-editor.org/rfc/rfc9204.html#name-literal-field-line-with-nam
 func AppendNamedReference(p []byte, i uint64, neverIndex, isStatic bool) []byte {
 	const (
-		P = 0b0100_0000
-		N = 0b0010_0000
-		T = 0b0001_0000
-		M = 0b0000_1111
+		P = 0b0100_0000 // Prefix
+		N = 0b0010_0000 // Never Index
+		T = 0b0001_0000 // Static Table
+		M = 0b0000_1111 // Mask
 	)
 	return varint.Append(p, P|t(neverIndex, N)|t(isStatic, T), M, i)
 }
@@ -41,10 +41,10 @@ func AppendNamedReference(p []byte, i uint64, neverIndex, isStatic bool) []byte 
 // AppendLiteralName https://www.rfc-editor.org/rfc/rfc9204.html#name-literal-field-line-with-lit
 func AppendLiteralName(p []byte, name string, neverIndex bool) []byte {
 	const (
-		P = 0b0010_0000
-		N = 0b0001_0000
-		H = 0b0000_1000
-		M = 0b0000_0111
+		P = 0b0010_0000 // Prefix
+		N = 0b0001_0000 // Never Index
+		H = 0b0000_1000 // Huffman Encoded
+		M = 0b0000_0111 // Mask
 	)
 	n := uint64(len(name))
 	if h := huffman.EncodeLengthLower(name); h < n {
