@@ -78,7 +78,7 @@ func IsName3Valid[T string | []byte](n T) bool {
 // field-vchar    = VCHAR / obs-text
 // obs-text       = %x80-FF
 func isFieldVChar(c byte) bool {
-	return c >= 0x80 || isIn(c, vchar%(1<<64), vchar>>64)
+	return c >= '!' && c != 0x7F
 }
 
 // isFieldContent returns true if c is in the field-content set, false otherwise
