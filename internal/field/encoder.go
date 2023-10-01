@@ -65,7 +65,7 @@ func (fe *Encoder) AppendResponse(p []byte, statusCode int, header map[string][]
 	// https://www.rfc-editor.org/rfc/rfc9114.html#name-http-control-data
 	p = appendStatus(p, statusCode)
 
-	if statusCode <= 100 || statusCode >= 200 {
+	if statusCode < 100 || statusCode >= 200 {
 		// Automagic the Date header if absent
 		if _, ok := header["Date"]; !ok {
 			p = appendDate(p, time.Now())
@@ -275,11 +275,9 @@ func appendScheme(p []byte, scheme string) []byte {
 
 // appendDate appends a Date header field with time t.
 func appendDate(p []byte, t time.Time) []byte {
-	const StaticTableIndex = 6
-
 	const H = 0b1000_0000
 
-	p = inst.AppendNamedReference(p, StaticTableIndex, false, true)
+	p = inst.AppendNamedReference(p, 6, false, true)
 	// RFC1123 time length is less 0x7F so only need a single byte for length
 	i := len(p)
 	p = append(p, 0)
