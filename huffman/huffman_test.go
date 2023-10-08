@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"math"
 	"net/http"
@@ -35,7 +36,7 @@ func TestEOS(t *testing.T) {
 	t.Run("eos", func(t *testing.T) {
 		in := binary.BigEndian.AppendUint32(nil, eosCode<<(32-eosLen))
 		_, err := Decode(nil, in)
-		if err != errEOSEncoded {
+		if !errors.Is(err, errEOSEncoded) {
 			t.Errorf("expected error %v, got %v", errEOSEncoded, err)
 		}
 	})
@@ -43,7 +44,7 @@ func TestEOS(t *testing.T) {
 		in := []byte{0xf8} // 8 bit code for &
 		in = binary.BigEndian.AppendUint32(in, eosCode<<(32-eosLen))
 		_, err := Decode(nil, in)
-		if err != errEOSEncoded {
+		if !errors.Is(err, errEOSEncoded) {
 			t.Errorf("expected error %v, got %v", errEOSEncoded, err)
 		}
 	})
