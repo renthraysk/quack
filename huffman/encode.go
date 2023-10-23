@@ -91,8 +91,8 @@ func AppendInt(p []byte, v int64) []byte {
 func AppendHttpTime(p []byte, t time.Time) []byte {
 	u := t.UTC()
 	year, month, day := u.Date()
-	y := year / 100
-	if y >= 100 {
+	century := year / 100
+	if century >= 100 {
 		panic("year overflows 4 digits")
 	}
 
@@ -104,9 +104,9 @@ func AppendHttpTime(p []byte, t time.Time) []byte {
 	m := months[month-1]
 	p, x, n = appendCode(p, x, n, m.code, m.length) // "Day, 01 Mon "
 
-	p, x, n = append00To99(p, x, n, y)
-	p, x, n = append00To99(p, x, n, year-(y*100)) // "Day, 01 Mon 1990"
-	p, x, n = appendByte(p, x, n, ' ')            // "Day, 01 Mon 1990 "
+	p, x, n = append00To99(p, x, n, century)
+	p, x, n = append00To99(p, x, n, year-(century*100)) // "Day, 01 Mon 1990"
+	p, x, n = appendByte(p, x, n, ' ')                  // "Day, 01 Mon 1990 "
 
 	hour, minute, second := u.Clock()
 	p, x, n = append00To99(p, x, n, hour) // "Day, 01 Mon 1990 HH"
