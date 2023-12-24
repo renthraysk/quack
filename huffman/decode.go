@@ -29,9 +29,9 @@ func Decode(dst, in []byte) ([]byte, error) {
 	}
 	// n < 32 and len(in) < 4, so x has enough capacity to load up remaining
 	// bytes.
-	for i := 0; i < len(in); i++ {
+	for _, y := range in {
 		x <<= 8
-		x |= uint64(in[i])
+		x |= uint64(y)
 		n += 8
 	}
 	for n >= 32 {
