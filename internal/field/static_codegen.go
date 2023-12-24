@@ -133,30 +133,41 @@ func main() {
 				value string
 			}
 
-			values := make([]vs, 0, 8)
-
+			values := make([]vs, 0, len(v.values))
 			for value, index := range v.values {
 				values = append(values, vs{index, value})
 			}
 
 			switch len(values) {
 			case 1:
-				fmt.Fprintf(w, "\t\tif value == %q {\n", values[0].value)
-				fmt.Fprintf(w, "\t\t\treturn %d, matchNameValue\n", values[0].index)
+				fmt.Fprintf(w, "\t\t\treturn %d, valueMatch(value, %q)\n", values[0].index, values[0].value)
 			default:
+				sort.Slice(values, func(i, j int) bool {
+					return values[i].index < values[j].index
+				})
+
 				fmt.Fprintf(w, "\t\tswitch value {\n")
 				for _, vs := range values {
 					fmt.Fprintf(w, "\t\t\tcase %q:\n", vs.value)
 					fmt.Fprintf(w, "\t\t\t\treturn %d, matchNameValue\n", vs.index)
 				}
+				fmt.Fprintf(w, "\t\t}\n")
+				fmt.Fprintf(w, "\t\treturn %d, matchName\n", values[0].index)
 			}
-			fmt.Fprintf(w, "\t\t}\n")
-			fmt.Fprintf(w, "\t\treturn %d, matchName\n", values[0].index)
+
 		}
 		fmt.Fprintln(w, "\t}")
 		fmt.Fprintln(w, "\treturn 0, matchNone")
 		fmt.Fprintln(w, `}`)
 	}
+	fmt.Fprintln(w)
+	fmt.Fprintln(w, `func valueMatch(a, b string) match { 
+	if a == b {
+		return matchNameValue
+	} 
+	return matchName; 
+}`)
+
 	fmt.Fprintln(w)
 	fmt.Fprint(w, "const intern string = \"\"+\n")
 	printGoString(w, intern, 70)

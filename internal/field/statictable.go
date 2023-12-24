@@ -12,20 +12,11 @@ func staticLookup(name, value string) (index uint64, m match) {
 		}
 		return 29, matchName
 	case "Accept-Encoding":
-		if value == "gzip, deflate, br" {
-			return 31, matchNameValue
-		}
-		return 31, matchName
+		return 31, valueMatch(value, "gzip, deflate, br")
 	case "Accept-Language":
-		if value == "" {
-			return 72, matchNameValue
-		}
-		return 72, matchName
+		return 72, valueMatch(value, "")
 	case "Accept-Ranges":
-		if value == "bytes" {
-			return 32, matchNameValue
-		}
-		return 32, matchName
+		return 32, valueMatch(value, "bytes")
 	case "Access-Control-Allow-Credentials":
 		switch value {
 		case "FALSE":
@@ -55,20 +46,11 @@ func staticLookup(name, value string) (index uint64, m match) {
 		}
 		return 76, matchName
 	case "Access-Control-Allow-Origin":
-		if value == "*" {
-			return 35, matchNameValue
-		}
-		return 35, matchName
+		return 35, valueMatch(value, "*")
 	case "Access-Control-Expose-Headers":
-		if value == "content-length" {
-			return 79, matchNameValue
-		}
-		return 79, matchName
+		return 79, valueMatch(value, "content-length")
 	case "Access-Control-Request-Headers":
-		if value == "content-type" {
-			return 80, matchNameValue
-		}
-		return 80, matchName
+		return 80, valueMatch(value, "content-type")
 	case "Access-Control-Request-Method":
 		switch value {
 		case "get":
@@ -78,22 +60,17 @@ func staticLookup(name, value string) (index uint64, m match) {
 		}
 		return 81, matchName
 	case "Age":
-		if value == "0" {
-			return 2, matchNameValue
-		}
-		return 2, matchName
+		return 2, valueMatch(value, "0")
 	case "Alt-Svc":
-		if value == "clear" {
-			return 83, matchNameValue
-		}
-		return 83, matchName
+		return 83, valueMatch(value, "clear")
 	case "Authorization":
-		if value == "" {
-			return 84, matchNameValue
-		}
-		return 84, matchName
+		return 84, valueMatch(value, "")
 	case "Cache-Control":
 		switch value {
+		case "max-age=0":
+			return 36, matchNameValue
+		case "max-age=2592000":
+			return 37, matchNameValue
 		case "max-age=604800":
 			return 38, matchNameValue
 		case "no-cache":
@@ -102,17 +79,10 @@ func staticLookup(name, value string) (index uint64, m match) {
 			return 40, matchNameValue
 		case "public, max-age=31536000":
 			return 41, matchNameValue
-		case "max-age=0":
-			return 36, matchNameValue
-		case "max-age=2592000":
-			return 37, matchNameValue
 		}
-		return 38, matchName
+		return 36, matchName
 	case "Content-Disposition":
-		if value == "" {
-			return 3, matchNameValue
-		}
-		return 3, matchName
+		return 3, valueMatch(value, "")
 	case "Content-Encoding":
 		switch value {
 		case "br":
@@ -122,131 +92,71 @@ func staticLookup(name, value string) (index uint64, m match) {
 		}
 		return 42, matchName
 	case "Content-Length":
-		if value == "0" {
-			return 4, matchNameValue
-		}
-		return 4, matchName
+		return 4, valueMatch(value, "0")
 	case "Content-Security-Policy":
-		if value == "script-src 'none'; object-src 'none'; base-uri 'none'" {
-			return 85, matchNameValue
-		}
-		return 85, matchName
+		return 85, valueMatch(value, "script-src 'none'; object-src 'none'; base-uri 'none'")
 	case "Content-Type":
 		switch value {
+		case "application/dns-message":
+			return 44, matchNameValue
 		case "application/javascript":
 			return 45, matchNameValue
 		case "application/json":
 			return 46, matchNameValue
 		case "application/x-www-form-urlencoded":
 			return 47, matchNameValue
-		case "image/png":
-			return 50, matchNameValue
-		case "text/css":
-			return 51, matchNameValue
-		case "text/plain":
-			return 53, matchNameValue
-		case "application/dns-message":
-			return 44, matchNameValue
 		case "image/gif":
 			return 48, matchNameValue
 		case "image/jpeg":
 			return 49, matchNameValue
+		case "image/png":
+			return 50, matchNameValue
+		case "text/css":
+			return 51, matchNameValue
 		case "text/html; charset=utf-8":
 			return 52, matchNameValue
+		case "text/plain":
+			return 53, matchNameValue
 		case "text/plain;charset=utf-8":
 			return 54, matchNameValue
 		}
-		return 45, matchName
+		return 44, matchName
 	case "Cookie":
-		if value == "" {
-			return 5, matchNameValue
-		}
-		return 5, matchName
+		return 5, valueMatch(value, "")
 	case "Date":
-		if value == "" {
-			return 6, matchNameValue
-		}
-		return 6, matchName
+		return 6, valueMatch(value, "")
 	case "Early-Data":
-		if value == "1" {
-			return 86, matchNameValue
-		}
-		return 86, matchName
+		return 86, valueMatch(value, "1")
 	case "Etag":
-		if value == "" {
-			return 7, matchNameValue
-		}
-		return 7, matchName
+		return 7, valueMatch(value, "")
 	case "Expect-Ct":
-		if value == "" {
-			return 87, matchNameValue
-		}
-		return 87, matchName
+		return 87, valueMatch(value, "")
 	case "Forwarded":
-		if value == "" {
-			return 88, matchNameValue
-		}
-		return 88, matchName
+		return 88, valueMatch(value, "")
 	case "If-Modified-Since":
-		if value == "" {
-			return 8, matchNameValue
-		}
-		return 8, matchName
+		return 8, valueMatch(value, "")
 	case "If-None-Match":
-		if value == "" {
-			return 9, matchNameValue
-		}
-		return 9, matchName
+		return 9, valueMatch(value, "")
 	case "If-Range":
-		if value == "" {
-			return 89, matchNameValue
-		}
-		return 89, matchName
+		return 89, valueMatch(value, "")
 	case "Last-Modified":
-		if value == "" {
-			return 10, matchNameValue
-		}
-		return 10, matchName
+		return 10, valueMatch(value, "")
 	case "Link":
-		if value == "" {
-			return 11, matchNameValue
-		}
-		return 11, matchName
+		return 11, valueMatch(value, "")
 	case "Location":
-		if value == "" {
-			return 12, matchNameValue
-		}
-		return 12, matchName
+		return 12, valueMatch(value, "")
 	case "Origin":
-		if value == "" {
-			return 90, matchNameValue
-		}
-		return 90, matchName
+		return 90, valueMatch(value, "")
 	case "Purpose":
-		if value == "prefetch" {
-			return 91, matchNameValue
-		}
-		return 91, matchName
+		return 91, valueMatch(value, "prefetch")
 	case "Range":
-		if value == "bytes=0-" {
-			return 55, matchNameValue
-		}
-		return 55, matchName
+		return 55, valueMatch(value, "bytes=0-")
 	case "Referer":
-		if value == "" {
-			return 13, matchNameValue
-		}
-		return 13, matchName
+		return 13, valueMatch(value, "")
 	case "Server":
-		if value == "" {
-			return 92, matchNameValue
-		}
-		return 92, matchName
+		return 92, valueMatch(value, "")
 	case "Set-Cookie":
-		if value == "" {
-			return 14, matchNameValue
-		}
-		return 14, matchName
+		return 14, valueMatch(value, "")
 	case "Strict-Transport-Security":
 		switch value {
 		case "max-age=31536000":
@@ -258,20 +168,11 @@ func staticLookup(name, value string) (index uint64, m match) {
 		}
 		return 56, matchName
 	case "Timing-Allow-Origin":
-		if value == "*" {
-			return 93, matchNameValue
-		}
-		return 93, matchName
+		return 93, valueMatch(value, "*")
 	case "Upgrade-Insecure-Requests":
-		if value == "1" {
-			return 94, matchNameValue
-		}
-		return 94, matchName
+		return 94, valueMatch(value, "1")
 	case "User-Agent":
-		if value == "" {
-			return 95, matchNameValue
-		}
-		return 95, matchName
+		return 95, valueMatch(value, "")
 	case "Vary":
 		switch value {
 		case "accept-encoding":
@@ -281,15 +182,9 @@ func staticLookup(name, value string) (index uint64, m match) {
 		}
 		return 59, matchName
 	case "X-Content-Type-Options":
-		if value == "nosniff" {
-			return 61, matchNameValue
-		}
-		return 61, matchName
+		return 61, valueMatch(value, "nosniff")
 	case "X-Forwarded-For":
-		if value == "" {
-			return 96, matchNameValue
-		}
-		return 96, matchName
+		return 96, valueMatch(value, "")
 	case "X-Frame-Options":
 		switch value {
 		case "deny":
@@ -299,12 +194,16 @@ func staticLookup(name, value string) (index uint64, m match) {
 		}
 		return 97, matchName
 	case "X-Xss-Protection":
-		if value == "1; mode=block" {
-			return 62, matchNameValue
-		}
-		return 62, matchName
+		return 62, valueMatch(value, "1; mode=block")
 	}
 	return 0, matchNone
+}
+
+func valueMatch(a, b string) match {
+	if a == b {
+		return matchNameValue
+	}
+	return matchName
 }
 
 const intern string = "" +
