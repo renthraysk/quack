@@ -11,6 +11,7 @@ import (
 // encode s.
 func EncodeLength(s string) uint64 {
 	var n uint64
+
 	for i := 0; i < len(s); i++ {
 		n += uint64(codeLengths[s[i]])
 	}
@@ -68,10 +69,10 @@ func AppendInt(p []byte, v int64) []byte {
 		n = uint(codeLengths['-'])
 	}
 	i := len(a)
-	for v := uint64(0); u >= 100; {
-		u, v = bits.Div64(0, u, 100)
+	for w := uint64(0); u >= 100; {
+		u, w = bits.Div64(0, u, 100)
 		i--
-		a[i] = uint8(v)
+		a[i] = uint8(w)
 	}
 	// u < 100
 	switch {
@@ -91,6 +92,7 @@ func AppendInt(p []byte, v int64) []byte {
 func AppendHttpTime(p []byte, t time.Time) []byte {
 	u := t.UTC()
 	year, month, day := u.Date()
+
 	century := year / 100
 	if century >= 100 {
 		panic("year overflows 4 digits")
