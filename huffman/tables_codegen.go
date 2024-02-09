@@ -204,16 +204,16 @@ func main() {
 	}
 	fmt.Fprintln(w, "}")
 	fmt.Fprintln(w)
-	printCodes(w, &codes)
+	writeCodes(w, &codes)
 	fmt.Fprintln(w)
 	fmt.Fprintln(w, `const codeLengths = "" +`)
-	printGoString(w, codeLengths, stringWidth)
+	writeGoString(w, codeLengths, stringWidth)
 	fmt.Fprintln(w)
 	fmt.Fprintln(w, "const shortCodes = \"\" +")
-	printGoString(w, ci.shortCodes, stringWidth)
+	writeGoString(w, ci.shortCodes, stringWidth)
 	fmt.Fprintln(w)
 	fmt.Fprintln(w, "const longCodes = \"\" +")
-	printGoString(w, ci.longCodes[:], stringWidth)
+	writeGoString(w, ci.longCodes[:], stringWidth)
 
 	fmt.Fprintln(w, `
 var codes00To99 = [100]code[uint16] {`)
@@ -235,7 +235,7 @@ func isIn(c byte, lo, hi uint64) bool {
 	return 1<<(c%64)&m != 0
 }
 
-func printGoString[T ~string | ~[]byte](w io.Writer, s T, width int) {
+func writeGoString[T ~string | ~[]byte](w io.Writer, s T, width int) {
 	const hex = "0123456789abcdef"
 	const escChars = (1 << 0x20) - 1 | 1<<'"' | 1<<'\\' | 1<<'\x7F'
 	const tabWidth = 4
@@ -286,7 +286,7 @@ func printGoString[T ~string | ~[]byte](w io.Writer, s T, width int) {
 	}
 }
 
-func printCodes(w io.Writer, codes *[256]uint32) {
+func writeCodes(w io.Writer, codes *[256]uint32) {
 	zeroPad := append(make([]byte, 0, 7+8), "0000000"...)
 
 	io.WriteString(w, "var codes = [256]uint32{\n\t")
