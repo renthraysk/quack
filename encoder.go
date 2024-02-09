@@ -33,7 +33,7 @@ func allEqual[T comparable](s []T, one T) bool {
 	return true
 }
 
-// https://www.rfc-editor.org/rfc/rfc9114.html#name-request-pseudo-header-field
+// AppendRequest https://www.rfc-editor.org/rfc/rfc9114.html#name-request-pseudo-header-field
 func (e *Encoder) AppendRequest(p []byte, method, scheme, authority, path string, header map[string][]string) ([]byte, error) {
 
 	if len(scheme) <= len("https") {
@@ -65,21 +65,21 @@ func (e *Encoder) AppendRequest(p []byte, method, scheme, authority, path string
 	return p, nil
 }
 
-// https://www.rfc-editor.org/rfc/rfc9114.html#name-the-connect-method
+// AppendConnect https://www.rfc-editor.org/rfc/rfc9114.html#name-the-connect-method
 func (e *Encoder) AppendConnect(p []byte, authority string, header map[string][]string) ([]byte, error) {
 	fe := e.fieldEncoder.Load()
 	p = fe.AppendConnect(p, authority, header)
 	return p, nil
 }
 
-// https://www.rfc-editor.org/rfc/rfc9114.html#name-response-pseudo-header-fiel
+// AppendResponse https://www.rfc-editor.org/rfc/rfc9114.html#name-response-pseudo-header-fiel
 func (e *Encoder) AppendResponse(p []byte, statusCode int, header map[string][]string) ([]byte, error) {
 	fe := e.fieldEncoder.Load()
 	p = fe.AppendResponse(p, statusCode, header)
 	return p, nil
 }
 
-// https://www.rfc-editor.org/rfc/rfc9204.html#name-decoder-instructions
+// readDecoderInstructions https://www.rfc-editor.org/rfc/rfc9204.html#name-decoder-instructions
 func (e *Encoder) readDecoderInstructions(p []byte) error {
 	var streamID, increment uint64
 	var err error
