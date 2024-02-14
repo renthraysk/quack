@@ -25,13 +25,14 @@ func isUpper(c byte) bool { return c-'A' <= 'Z'-'A' }
 
 // ToLower returns the ASCII lowercase version of c.
 func ToLower(c byte) byte {
-	var x int
 	if isUpper(c) {
-		x = 'a' - 'A'
+		return c - 'A' + 'a'
 	}
-	return c + byte(x)
+	return c
 }
 
+// isIn returns if byte c is in a 128 bit set represented in a lo, the lower 64
+// bit mask, and hi the upper 64 bits of the set.
 func isIn(c byte, lo, hi uint64) bool {
 	m := lo
 	if c >= 64 {
