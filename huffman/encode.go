@@ -12,7 +12,7 @@ import (
 func EncodeLength(s string) uint64 {
 	var n uint64
 
-	for i := 0; i < len(s); i++ {
+	for i := range len(s) {
 		n += uint64(codeLengths[s[i]])
 	}
 	return (n + 7) / 8
@@ -24,7 +24,7 @@ func AppendString(p []byte, s string) []byte {
 		x uint64
 		n uint
 	)
-	for i := 0; i < len(s); i++ {
+	for i := range len(s) {
 		p, x, n = appendByte(p, x, n, s[i])
 	}
 	return appendFinal(p, x, n)
@@ -34,7 +34,7 @@ func AppendString(p []byte, s string) []byte {
 // the ASCII lower cased version of s.
 func EncodeLengthLower(s string) uint64 {
 	var n uint64
-	for i := 0; i < len(s); i++ {
+	for i := range len(s) {
 		n += uint64(codeLengths[ascii.ToLower(s[i])])
 	}
 	return (n + 7) / 8
@@ -46,7 +46,7 @@ func AppendStringLower(p []byte, s string) []byte {
 		x uint64
 		n uint
 	)
-	for i := 0; i < len(s); i++ {
+	for i := range len(s) {
 		p, x, n = appendByte(p, x, n, ascii.ToLower(s[i]))
 	}
 	return appendFinal(p, x, n)
