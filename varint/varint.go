@@ -41,6 +41,7 @@ func Read(p []byte, mask uint8) (uint64, []byte, error) {
 }
 
 func Append(p []byte, prefix, mask byte, x uint64) []byte {
+	// inlines
 	if x < uint64(mask) {
 		return append(p, prefix|byte(x))
 	}
