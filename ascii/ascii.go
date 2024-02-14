@@ -58,7 +58,7 @@ func isToken3Char(c byte) bool {
 }
 
 func IsNameValid[T string | []byte](n T) bool {
-	for i := 0; i < len(n); i++ {
+	for i := range len(n) {
 		if !isTokenChar(n[i]) {
 			return false
 		}
@@ -67,7 +67,7 @@ func IsNameValid[T string | []byte](n T) bool {
 }
 
 func IsName3Valid[T string | []byte](n T) bool {
-	for i := 0; i < len(n); i++ {
+	for i := range len(n) {
 		if !isToken3Char(n[i]) {
 			return false
 		}
