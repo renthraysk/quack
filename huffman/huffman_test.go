@@ -250,14 +250,14 @@ func FuzzTime(f *testing.F) {
 		if err != nil {
 			t.Errorf("decode error: %v", err)
 		}
-		got, err := time.Parse(time.RFC1123, string(decoded))
+		got, err := time.Parse(http.TimeFormat, string(decoded))
 		if err != nil {
 			t.Errorf("parse error: %v", err)
 		}
 		if !expected.Equal(got) {
 			t.Errorf("expected %q, got %q",
-				expected.Format(time.RFC1123),
-				got.Format(time.RFC1123))
+				expected.Format(http.TimeFormat),
+				got.Format(http.TimeFormat))
 		}
 	})
 }
