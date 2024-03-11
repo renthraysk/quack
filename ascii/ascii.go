@@ -25,27 +25,25 @@ func isUpper(c byte) bool { return c-'A' <= 'Z'-'A' }
 
 // ToLower returns the ASCII lowercase version of c.
 func ToLower(c byte) byte {
+	var x byte
 	if isUpper(c) {
-		return c - 'A' + 'a'
+		x = 1
 	}
-	return c
+	return c | x<<5
 }
 
 // isIn returns if byte c is in a 128 bit set represented in a lo, the lower 64
 // bit mask, and hi the upper 64 bits of the set.
 func isIn(c byte, lo, hi uint64) bool {
-	m := lo
-	if c >= 64 {
-		m = hi
-	}
-	return (1<<(c%64))&m != 0
+	m := uint64(1) << c
+	return (m&lo)|(m&hi) != 0
 }
 
 func isTokenChar(c byte) bool {
 	// token is the set of characters allowed in pre HTTP/3 names.
 	const token = alpha | digits | special
 
-	return c < 0x80 && isIn(c, token%(1<<64), token>>64)
+	return isIn(c, token%(1<<64), token>>64)
 }
 
 // isToken3Char returns true if byte c is a valid in a HTTP/3 name literal, false
@@ -54,7 +52,7 @@ func isToken3Char(c byte) bool {
 	// token3 is the set of characters allowed in HTTP/3 incoming names.
 	const token3 = lower | digits | special
 
-	return c < 0x80 && isIn(c, token3%(1<<64), token3>>64)
+	return isIn(c, token3%(1<<64), token3>>64)
 }
 
 func IsNameValid[T string | []byte](n T) bool {
@@ -152,7 +150,7 @@ func ToCanonical(b []byte) string {
 	nextA := 'a'
 	for i, c := range b {
 		if c-byte(nextA) < 26 {
-			b[i] = c ^ 0x20
+			b[i] = c ^ 0x20 // toggle case
 		}
 		nextA = 'A'
 		if c == '-' {
