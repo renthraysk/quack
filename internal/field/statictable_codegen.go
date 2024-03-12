@@ -170,7 +170,7 @@ func main() {
 
 	fmt.Fprintln(w)
 	fmt.Fprint(w, "const intern string = \"\"+\n")
-	printGoString(w, intern, 70)
+	writeGoString(w, intern, 70)
 	fmt.Fprintln(w)
 	fmt.Fprintln(w, `var staticTable = [...]header{`)
 	fmt.Fprint(w, a.String())
@@ -223,7 +223,7 @@ func writeByte(w io.ByteWriter, c byte) error {
 	return w.WriteByte(c)
 }
 
-func printGoString[T ~string | ~[]byte](w io.Writer, s T, width int) {
+func writeGoString[T ~string | ~[]byte](w io.Writer, s T, width int) {
 
 	const tabWidth = 4
 
