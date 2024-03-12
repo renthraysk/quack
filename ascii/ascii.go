@@ -29,14 +29,20 @@ func ToLower(c byte) byte {
 	if isUpper(c) {
 		x = 1
 	}
-	return c | x<<5
+	return c + x*('a'-'A')
 }
 
 // isIn returns if byte c is in a 128 bit set represented in a lo, the lower 64
 // bit mask, and hi the upper 64 bits of the set.
 func isIn(c byte, lo, hi uint64) bool {
-	m := uint64(1) << c
-	return (m&lo)|(m&hi) != 0
+	var mask uint64
+	if c < 128 {
+		mask = hi
+	}
+	if c < 64 {
+		mask = lo
+	}
+	return (1<<(c%64))&mask != 0
 }
 
 func isTokenChar(c byte) bool {
@@ -83,12 +89,20 @@ func isFieldVChar(c byte) bool {
 // isFieldContent returns true if c is in the field-content set, false otherwise
 // field-content  = field-vchar
 // [ 1*( SP / HTAB / field-vchar ) field-vchar ]
+// field-vchar    = VCHAR / obs-text
 // obs-text       = %x80-FF
 // https://www.rfc-editor.org/rfc/rfc9110#name-field-values
 func isFieldContent(c byte) bool {
 	const fieldContent = sp | htab | vchar
 
-	return c >= 0x80 || isIn(c, fieldContent%(1<<64), fieldContent>>64)
+	mask := ^uint64(0) // %x80-FF
+	if c < 128 {
+		mask = fieldContent >> 64
+	}
+	if c < 64 {
+		mask = fieldContent % (1 << 64)
+	}
+	return (1<<(c%64))&mask != 0
 }
 
 // https://www.rfc-editor.org/rfc/rfc9110#section-5.5
