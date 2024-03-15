@@ -19,7 +19,7 @@ func Decode(dst, in []byte) ([]byte, error) {
 		in = in[4:]
 		n += 32
 		for n >= 32 {
-			b, codeLen := codeLookup(uint32(x >> (n % 32))) // n<=59 so %32 is fine
+			b, codeLen := codeLookup(uint32(x >> (n % 32))) // n<=(64-minCodeLength) so %32 is fine
 			if codeLen == 0 {
 				return nil, errEOSEncoded
 			}
