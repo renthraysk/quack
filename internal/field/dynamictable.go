@@ -146,7 +146,7 @@ func decodeNameInsertWithLiteralName(p, buf []byte) (string, []byte, error) {
 		return "", p, errors.New("")
 	}
 	b := q[:n]
-	if p[0]&H == H {
+	if p[0]&H != 0 {
 		b, err = huffman.Decode(buf[:0], b)
 		if err != nil {
 			return "", p, err

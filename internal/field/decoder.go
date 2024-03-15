@@ -235,7 +235,7 @@ func readLiteralName(p, decodeBuf []byte) (string, []byte, error) {
 		return "", p, errUnexpectedEnd
 	}
 	b := q[:n:n]
-	if p[0]&H == H {
+	if p[0]&H != 0 {
 		b, err = huffman.Decode(decodeBuf[:0], b)
 		if err != nil {
 			return "", p, err
