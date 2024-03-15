@@ -2,6 +2,20 @@ package ascii
 
 import "testing"
 
+func TestIsFieldVChar(t *testing.T) {
+
+	for _, c := range []byte("!~") {
+		if !isFieldVChar(c) {
+			t.Fatalf("expected valid %c", c)
+		}
+	}
+	for _, c := range []byte("\t \x7F") {
+		if isFieldVChar(c) {
+			t.Fatalf("expected invalid %c (%x)", c, c)
+		}
+	}
+}
+
 func TestIsValueValid(t *testing.T) {
 	if IsValueValid([]byte{'\v'}) {
 		t.Error("\\v expected false, got true")
@@ -32,7 +46,6 @@ func TestIsValueValid(t *testing.T) {
 			t.Errorf("%q expected invalid, got valid", s)
 		}
 	}
-
 }
 
 func TestAppendLower(t *testing.T) {

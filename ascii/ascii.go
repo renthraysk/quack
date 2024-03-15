@@ -83,7 +83,11 @@ func IsName3Valid[T string | []byte](n T) bool {
 // field-vchar    = VCHAR / obs-text
 // obs-text       = %x80-FF
 func isFieldVChar(c byte) bool {
-	return c >= '!' && c != 0x7F
+	// return c >= '!' && c != '\x7F'
+	// split to avoid branching
+	x := c >= '!'
+	y := c != '\x7F'
+	return x && y
 }
 
 // isFieldContent returns true if c is in the field-content set, false otherwise
@@ -93,20 +97,18 @@ func isFieldVChar(c byte) bool {
 // obs-text       = %x80-FF
 // https://www.rfc-editor.org/rfc/rfc9110#name-field-values
 func isFieldContent(c byte) bool {
-	const fieldContent = sp | htab | vchar
-
-	mask := ^uint64(0) // %x80-FF
-	if c < 128 {
-		mask = fieldContent >> 64
+	// return (c >= ' ' && c != '\x7F') || c == '\t'
+	// split to avoid branching
+	x := c >= ' '
+	if c == '\t' {
+		x = true
 	}
-	if c < 64 {
-		mask = fieldContent % (1 << 64)
-	}
-	return (1<<(c%64))&mask != 0
+	y := c != '\x7F'
+	return x && y
 }
 
 // https://www.rfc-editor.org/rfc/rfc9110#section-5.5
-func IsValueValid[T []byte | string](v T) bool {
+func IsValueValid[T ~[]byte | ~string](v T) bool {
 	// An empty value is valid
 	if len(v) <= 0 {
 		return true
